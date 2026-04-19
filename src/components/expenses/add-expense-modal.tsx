@@ -78,10 +78,6 @@ export function AddExpenseModal({ onClose, onSuccess }: AddExpenseModalProps) {
     }
   }
 
-  const triggerFileInput = () => {
-    fileInputRef.current?.click()
-  }
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -125,10 +121,10 @@ export function AddExpenseModal({ onClose, onSuccess }: AddExpenseModalProps) {
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full glass-input rounded-xl py-3 px-4 text-sm text-foreground appearance-none cursor-pointer"
+                  className="w-full bg-gray-950 text-white border border-gray-800 rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500 appearance-none cursor-pointer text-sm"
                 >
                   {CATEGORIES.map((cat) => (
-                    <option key={cat.value} value={cat.value}>
+                    <option key={cat.value} value={cat.value} className="bg-gray-950 text-white">
                       {cat.label}
                     </option>
                   ))}
@@ -183,12 +179,13 @@ export function AddExpenseModal({ onClose, onSuccess }: AddExpenseModalProps) {
               </div>
             </div>
 
-            <div
-              className="border-2 border-dashed border-border/30 rounded-2xl p-6 text-center hover:border-primary/30 transition-all cursor-pointer"
-              onClick={triggerFileInput}
+            <label
+              htmlFor="voucher-upload"
+              className="border-2 border-dashed border-border/30 rounded-2xl p-6 text-center hover:border-primary/30 transition-all cursor-pointer block"
             >
               <input
                 ref={fileInputRef}
+                id="voucher-upload"
                 type="file"
                 className="hidden"
                 accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
@@ -221,12 +218,12 @@ export function AddExpenseModal({ onClose, onSuccess }: AddExpenseModalProps) {
                     <Upload size={20} className="text-muted-foreground" />
                   </div>
                   <p className="text-sm text-muted-foreground mb-1">Subir comprobante (opcional)</p>
-                  <Button variant="outline" type="button" size="sm" className="rounded-xl text-xs" onClick={(e) => e.stopPropagation()}>
+                  <Button variant="outline" type="button" size="sm" className="rounded-xl text-xs pointer-events-none" onClick={(e) => e.stopPropagation()}>
                     Seleccionar Archivo
                   </Button>
                 </>
               )}
-            </div>
+            </label>
 
             <div className="flex items-center justify-end gap-4 pt-4">
               <Button
