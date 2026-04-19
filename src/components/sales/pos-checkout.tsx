@@ -51,9 +51,7 @@ interface POSCheckoutProps {
 export function POSCheckout({ products, customers, userId, locationId, locationName }: POSCheckoutProps) {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('ALL')
-  const [showCart, setShowCart] = useState(true)
   const [showCustomerSelect, setShowCustomerSelect] = useState(false)
-  const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<typeof customers[0] | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [saleComplete, setSaleComplete] = useState<{ invoiceNumber: string; total: number } | null>(null)
@@ -219,120 +217,118 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
   }
 
   return (
-    <div className="h-full flex gap-6">
-      <div className={cn("flex-1 flex flex-col transition-all", showCart && "flex-0 w-[65%]")}>
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="p-6 border-b border-border/30 space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="relative group flex-1">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/30" size={20} />
-                <Input
-                  type="text"
-                  placeholder="Buscar por nombre o SKU..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full glass-input rounded-xl py-3 pl-12 pr-4"
-                />
-              </div>
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="glass-input rounded-xl py-3 px-4 bg-[#0a0a0a] text-white appearance-none"
-              >
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>
-                    {cat === 'ALL' ? 'Todas las categorías' : cat}
-                  </option>
-                ))}
-              </select>
+    <div className="h-full grid grid-cols-4 gap-0">
+      <div className="col-span-3 flex flex-col h-full overflow-hidden">
+        <div className="p-6 border-b border-gray-800">
+          <div className="flex items-center gap-4">
+            <div className="relative group flex-1 max-w-xl">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
+              <Input
+                type="text"
+                placeholder="Buscar por nombre o SKU..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full bg-black/60 border border-gray-700 rounded-xl py-3 pl-12 pr-4 text-sm focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all"
+              />
             </div>
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="bg-black/60 border border-gray-700 rounded-xl py-3 px-4 text-sm text-white appearance-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/50"
+            >
+              {categories.map(cat => (
+                <option key={cat} value={cat}>
+                  {cat === 'ALL' ? 'Todas las categorías' : cat}
+                </option>
+              ))}
+            </select>
           </div>
+        </div>
 
-          <div className="flex-1 overflow-y-auto p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredProducts.map(product => {
-                const stock = product.inventory.find(inv => inv.locationId === locationId)?.stock || 0
-                const inCart = cart.find(i => i.productId === product.id)
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
+            {filteredProducts.map(product => {
+              const stock = product.inventory.find(inv => inv.locationId === locationId)?.stock || 0
+              const inCart = cart.find(i => i.productId === product.id)
 
-                return (
-                  <button
-                    key={product.id}
-                    onClick={() => handleAddToCart(product)}
-                    disabled={stock === 0}
-                    className={cn(
-                      "glass-panel p-5 rounded-2xl text-left transition-all hover:scale-[1.02] active:scale-[0.98]",
-                      "border-border/30 hover:border-primary/40 hover:bg-primary/5",
-                      stock === 0 && "opacity-50 cursor-not-allowed",
-                      inCart && "border-primary/50 bg-primary/10"
-                    )}
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <span className="text-[10px] font-mono text-primary/60">{product.sku}</span>
-                      {inCart && (
-                        <span className="text-[10px] font-bold text-primary bg-primary/20 px-2 py-0.5 rounded-full">
-                          {inCart.quantity} en cart
-                        </span>
-                      )}
-                    </div>
-                    <h4 className="font-bold text-sm mb-1 line-clamp-2">{product.name}</h4>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">{product.category}</p>
-                    <div className="flex justify-between items-center">
-                      <span className="text-lg font-black text-primary">
-                        S/ {product.pricePen.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
-                      </span>
-                      <span className={cn(
-                        "text-[10px] font-bold uppercase tracking-wider",
-                        stock > 10 ? "text-emerald-400" : stock > 0 ? "text-amber-400" : "text-rose-400"
-                      )}>
-                        {stock} und
-                      </span>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
+              return (
+                <button
+                  key={product.id}
+                  onClick={() => handleAddToCart(product)}
+                  disabled={stock === 0}
+                  className={cn(
+                    "relative flex flex-col justify-between p-5 rounded-2xl text-left transition-all duration-200",
+                    "bg-black/60 border backdrop-blur-xl",
+                    stock === 0
+                      ? "border-gray-800 opacity-40 cursor-not-allowed"
+                      : inCart
+                      ? "border-primary/60 bg-primary/10"
+                      : "border-gray-800 hover:border-primary/40 hover:bg-primary/5 hover:scale-[1.01]",
+                  )}
+                  style={{ minHeight: '180px' }}
+                >
+                  {inCart && (
+                    <span className="absolute top-3 right-3 text-[10px] font-bold text-primary bg-primary/20 px-2 py-0.5 rounded-full">
+                      {inCart.quantity} en cart
+                    </span>
+                  )}
+
+                  <div className="space-y-1 flex-1">
+                    <p className="text-[9px] font-mono text-primary/50 uppercase tracking-wider">{product.sku}</p>
+                    <h4 className="font-bold text-sm leading-tight line-clamp-2 text-gray-100">{product.name}</h4>
+                    <p className="text-[9px] text-gray-500 uppercase tracking-wider">{product.category}</p>
+                  </div>
+
+                  <div className="flex items-end justify-between mt-3 pt-3 border-t border-gray-800/50">
+                    <span className="text-xl font-black text-primary neon-glow">
+                      S/ {product.pricePen.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                    </span>
+                    <span className={cn(
+                      "text-[10px] font-bold uppercase tracking-wider",
+                      stock > 10 ? "text-emerald-400" : stock > 0 ? "text-amber-400" : "text-rose-400"
+                    )}>
+                      {stock} und
+                    </span>
+                  </div>
+                </button>
+              )
+            })}
           </div>
         </div>
       </div>
 
-      <div className={cn(
-        "glass-panel rounded-3xl flex flex-col transition-all duration-300",
-        showCart ? "w-[35%] opacity-100" : "w-0 opacity-0 overflow-hidden"
-      )}>
-        <div className="p-6 border-b border-border/30 flex justify-between items-center">
+      <div className="col-span-1 h-full flex flex-col bg-black/80 backdrop-blur-xl border-l border-gray-800">
+        <div className="p-6 border-b border-gray-800 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-3">
             <ShoppingCart size={20} className="text-primary" />
-            <h3 className="font-bold">Carrito de Venta</h3>
+            <h3 className="font-bold text-gray-100">Carrito</h3>
             <span className="text-[10px] font-bold bg-primary/20 text-primary px-2 py-0.5 rounded-full">
               {cart.length}
             </span>
           </div>
-          <button onClick={() => setShowCart(false)} className="p-2 hover:bg-foreground/5 rounded-lg transition-all">
-            <X size={18} />
-          </button>
         </div>
 
         {!selectedCustomer ? (
-          <div className="p-6 space-y-4">
+          <div className="p-4 shrink-0">
             <button
               onClick={() => setShowCustomerSelect(true)}
-              className="w-full glass-panel border-dashed border-2 border-primary/30 rounded-xl p-4 flex items-center gap-4 hover:bg-primary/5 transition-all"
+              className="w-full border-2 border-dashed border-gray-700 rounded-xl p-4 flex items-center gap-4 hover:border-primary/40 hover:bg-primary/5 transition-all"
             >
               <User size={20} className="text-primary" />
               <div className="text-left">
-                <p className="font-bold text-sm">Sin cliente asignado</p>
-                <p className="text-xs text-muted-foreground">Click para seleccionar cliente</p>
+                <p className="font-bold text-sm text-gray-200">Sin cliente</p>
+                <p className="text-xs text-gray-500">Toca para seleccionar</p>
               </div>
             </button>
           </div>
         ) : (
-          <div className="px-6 py-3 bg-primary/5 border-b border-border/30 flex items-center gap-3">
+          <div className="px-4 py-3 bg-primary/5 border-b border-gray-800 flex items-center gap-3 shrink-0">
             <User size={16} className="text-primary" />
-            <div>
-              <p className="font-bold text-xs">{selectedCustomer.name}</p>
-              <p className="text-[10px] text-muted-foreground">{selectedCustomer.docType} {selectedCustomer.docNumber}</p>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-xs text-gray-100 truncate">{selectedCustomer.name}</p>
+              <p className="text-[10px] text-gray-500">{selectedCustomer.docType} {selectedCustomer.docNumber}</p>
             </div>
-            <button onClick={() => { setSelectedCustomer(null); setCustomer(null) }} className="ml-auto p-1">
+            <button onClick={() => { setSelectedCustomer(null); setCustomer(null) }} className="p-1 text-gray-500 hover:text-gray-200">
               <X size={14} />
             </button>
           </div>
@@ -340,79 +336,78 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
 
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {cart.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Package size={32} strokeWidth={1} className="mx-auto mb-2 opacity-40" />
+            <div className="text-center py-12 text-gray-600">
+              <Package size={40} strokeWidth={1} className="mx-auto mb-3 opacity-30" />
               <p className="text-sm">Carrito vacío</p>
-              <p className="text-xs">Agrega productos para comenzar</p>
+              <p className="text-xs mt-1">Agrega productos para comenzar</p>
             </div>
           ) : (
             cart.map(item => (
               <div key={item.productId} className={cn(
-                "glass-panel rounded-xl p-4 bg-foreground/[0.02]",
-                item.hasDiscount && "border-rose-500/30 bg-rose-500/5"
+                "rounded-xl p-4 border backdrop-blur-xl",
+                item.hasDiscount
+                  ? "bg-rose-500/5 border-rose-500/20"
+                  : "bg-gray-900/60 border-gray-800"
               )}>
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-bold text-xs line-clamp-1">{item.name}</p>
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex-1 min-w-0 mr-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className="font-bold text-xs text-gray-100 line-clamp-1">{item.name}</p>
                       {item.hasDiscount && (
-                        <span className="flex items-center gap-1 text-[8px] font-bold text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                        <span className="flex items-center gap-0.5 text-[8px] font-bold text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded uppercase shrink-0">
                           <Percent size={8} />
                           -{((item.basePrice - item.unitPrice) / item.basePrice * 100).toFixed(0)}%
                         </span>
                       )}
                     </div>
-                    <p className="text-[10px] text-muted-foreground">{item.sku}</p>
+                    <p className="text-[9px] text-gray-600 font-mono mt-0.5">{item.sku}</p>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 shrink-0">
                     <button
                       onClick={() => handleOpenPriceEdit(item)}
-                      className="p-1 hover:bg-primary/10 rounded text-muted-foreground hover:text-primary transition-all"
+                      className="p-1.5 rounded-lg hover:bg-primary/10 text-gray-500 hover:text-primary transition-all"
                       title="Editar precio"
                     >
-                      <Pencil size={12} />
+                      <Pencil size={11} />
                     </button>
                     <button
                       onClick={() => removeFromCart(item.productId)}
-                      className="p-1 hover:bg-rose-500/10 rounded text-muted-foreground hover:text-rose-500 transition-all"
+                      className="p-1.5 rounded-lg hover:bg-rose-500/10 text-gray-500 hover:text-rose-400 transition-all"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={13} />
                     </button>
                   </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
                     <button
                       onClick={() => updateQuantity(item.productId, Math.max(0, item.quantity - 1))}
-                      className="w-7 h-7 rounded-lg bg-foreground/5 flex items-center justify-center hover:bg-primary/10 transition-all"
+                      className="w-7 h-7 rounded-lg bg-gray-800 flex items-center justify-center hover:bg-gray-700 transition-all"
                     >
-                      <Minus size={12} />
+                      <Minus size={11} className="text-gray-400" />
                     </button>
-                    <span className="font-bold text-sm w-8 text-center">{item.quantity}</span>
+                    <span className="font-bold text-sm text-gray-100 w-7 text-center">{item.quantity}</span>
                     <button
                       onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                      className="w-7 h-7 rounded-lg bg-foreground/5 flex items-center justify-center hover:bg-primary/10 transition-all"
+                      className="w-7 h-7 rounded-lg bg-gray-800 flex items-center justify-center hover:bg-gray-700 transition-all"
                     >
-                      <Plus size={12} />
+                      <Plus size={11} className="text-gray-400" />
                     </button>
                   </div>
                   <div className="text-right">
                     {item.hasDiscount ? (
-                      <>
-                        <p className="text-[10px] text-rose-400 line-through">
-                          S/ {item.basePrice.toFixed(2)} c/u
+                      <div className="space-y-0.5">
+                        <p className="text-[9px] text-rose-400 line-through">
+                          S/ {item.basePrice.toFixed(2)}
                         </p>
-                        <p className="font-black text-rose-400">S/ {item.unitPrice.toFixed(2)} c/u</p>
-                      </>
+                        <p className="font-black text-rose-400 text-sm">S/ {item.subtotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
+                      </div>
                     ) : (
-                      <p className="text-xs text-muted-foreground">S/ {item.unitPrice.toFixed(2)} c/u</p>
+                      <p className="font-black text-primary text-sm">
+                        S/ {item.subtotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                      </p>
                     )}
-                    <p className={cn(
-                      "font-black",
-                      item.hasDiscount ? "text-rose-400" : "text-primary"
-                    )}>
-                      S/ {item.subtotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
-                    </p>
                   </div>
                 </div>
               </div>
@@ -420,25 +415,26 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
           )}
         </div>
 
-        <div className="p-6 border-t border-border/30 space-y-4 bg-background/40">
+        <div className="p-6 border-t border-gray-800 space-y-4 bg-black/60 shrink-0">
           {hasDiscountItems.length > 0 && (
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-rose-500/10 border border-rose-500/20">
-              <Percent size={14} className="text-rose-400" />
+              <Percent size={13} className="text-rose-400 shrink-0" />
               <span className="text-[10px] font-bold text-rose-400">
                 {hasDiscountItems.length} producto(s) con precio rebajado
               </span>
             </div>
           )}
+
           <div className="space-y-2">
-            <div className="flex justify-between text-xs text-muted-foreground">
+            <div className="flex justify-between text-xs text-gray-500">
               <span>Subtotal</span>
               <span>S/ {subtotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
             </div>
-            <div className="flex justify-between text-xs text-muted-foreground">
+            <div className="flex justify-between text-xs text-gray-500">
               <span>IGV (18%)</span>
               <span>S/ {igv.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
             </div>
-            <div className="flex justify-between text-lg font-black">
+            <div className="flex justify-between text-lg font-black text-gray-100 pt-2 border-t border-gray-800">
               <span>Total</span>
               <span className="text-primary neon-glow">S/ {cartTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
             </div>
@@ -447,7 +443,7 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
           <Button
             onClick={handleCheckout}
             disabled={cart.length === 0 || isProcessing}
-            className="w-full py-4 rounded-xl bg-primary text-primary-foreground font-bold neon-glow hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+            className="w-full py-4 rounded-xl bg-primary text-primary-foreground font-bold neon-glow hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 text-sm"
           >
             {isProcessing ? (
               <div className="flex items-center gap-2">
@@ -456,58 +452,42 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
               </div>
             ) : (
               <>
-                <CreditCard size={18} className="mr-2" />
+                <CreditCard size={16} className="mr-2" />
                 Cobrar S/ {cartTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
               </>
             )}
           </Button>
 
-          <p className="text-[10px] text-center text-muted-foreground">
+          <p className="text-[10px] text-center text-gray-600">
             {locationName} • Venta al contado
           </p>
         </div>
       </div>
 
-      {!showCart && (
-        <button
-          onClick={() => setShowCart(true)}
-          className="fixed right-6 bottom-6 w-16 h-16 rounded-full bg-primary text-primary-foreground shadow-[0_0_30px_rgba(0,247,255,0.4)] flex items-center justify-center hover:scale-[1.05] transition-all"
-        >
-          <ShoppingCart size={24} />
-          {cart.length > 0 && (
-            <span className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">
-              {cart.length}
-            </span>
-          )}
-        </button>
-      )}
-
       {showCustomerSelect && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4"
         >
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
+            initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            className="glass-panel rounded-[2rem] w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
+            className="bg-black/90 backdrop-blur-xl rounded-3xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col border border-gray-800"
           >
-            <div className="p-6 border-b border-border/30 flex justify-between items-center">
-              <h2 className="text-xl font-bold">Seleccionar Cliente</h2>
-              <button onClick={() => setShowCustomerSelect(false)} className="p-2 hover:bg-foreground/5 rounded-lg">
+            <div className="p-6 border-b border-gray-800 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-gray-100">Seleccionar Cliente</h2>
+              <button onClick={() => setShowCustomerSelect(false)} className="p-2 rounded-lg hover:bg-gray-800 text-gray-500 hover:text-gray-200 transition-all">
                 <X size={20} />
               </button>
             </div>
-            <div className="p-4 border-b border-border/30">
+            <div className="p-4 border-b border-gray-800">
               <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/30" size={18} />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
                 <Input
                   type="text"
                   placeholder="Buscar cliente..."
-                  className="w-full glass-input rounded-xl py-2.5 pl-10 pr-4"
+                  className="w-full bg-black/60 border border-gray-700 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:border-primary"
                 />
               </div>
             </div>
@@ -516,12 +496,12 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
                 <button
                   key={customer.id}
                   onClick={() => handleSelectCustomer(customer)}
-                  className="w-full glass-panel rounded-xl p-4 flex items-center gap-4 hover:bg-primary/5 transition-all text-left"
+                  className="w-full rounded-xl p-4 flex items-center gap-4 bg-black/40 border border-gray-800 hover:border-primary/40 hover:bg-primary/5 transition-all text-left"
                 >
-                  <User size={20} className="text-primary" />
+                  <User size={20} className="text-primary shrink-0" />
                   <div>
-                    <p className="font-bold text-sm">{customer.name}</p>
-                    <p className="text-xs text-muted-foreground">{customer.docType} {customer.docNumber}</p>
+                    <p className="font-bold text-sm text-gray-100">{customer.name}</p>
+                    <p className="text-xs text-gray-500">{customer.docType} {customer.docNumber}</p>
                   </div>
                 </button>
               ))}
@@ -534,39 +514,39 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-black/80 backdrop-blur-md z-[150] flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/90 backdrop-blur-md z-[150] flex items-center justify-center p-4"
         >
           <motion.div
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            className="glass-panel rounded-[2rem] w-full max-w-md p-8 border-primary/30"
+            className="bg-black/90 backdrop-blur-xl rounded-3xl w-full max-w-md p-8 border border-gray-800"
           >
             <div className="text-center mb-6">
-              <h3 className="text-xl font-bold mb-1">Editar Precio</h3>
-              <p className="text-sm text-muted-foreground">{editingPriceItem.name}</p>
+              <h3 className="text-xl font-bold text-gray-100 mb-1">Editar Precio</h3>
+              <p className="text-sm text-gray-500 line-clamp-1">{editingPriceItem.name}</p>
             </div>
 
             <div className="space-y-4">
-              <div className="flex justify-between items-center p-4 rounded-xl bg-foreground/5">
-                <span className="text-xs text-muted-foreground">Precio catálogo</span>
-                <span className="font-bold line-through text-muted-foreground">
+              <div className="flex justify-between items-center p-4 rounded-xl bg-gray-900/80 border border-gray-800">
+                <span className="text-xs text-gray-500">Precio catálogo</span>
+                <span className="font-bold line-through text-gray-500">
                   S/ {editingPriceItem.basePrice.toFixed(2)}
                 </span>
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 ml-1">
                   Nuevo Precio (PEN)
                 </label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">S/</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">S/</span>
                   <Input
                     type="number"
                     step="0.01"
                     min={0}
                     value={newPriceInput}
                     onChange={(e) => setNewPriceInput(e.target.value)}
-                    className="w-full glass-input rounded-xl py-3 pl-10 pr-4 text-sm font-bold"
+                    className="w-full bg-black/60 border border-gray-700 rounded-xl py-3 pl-10 pr-4 text-sm font-bold focus:border-primary"
                     autoFocus
                   />
                 </div>
@@ -574,7 +554,7 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
 
               {parseFloat(newPriceInput) < editingPriceItem.basePrice && parseFloat(newPriceInput) > 0 && (
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20">
-                  <Percent size={14} className="text-rose-400" />
+                  <Percent size={14} className="text-rose-400 shrink-0" />
                   <span className="text-xs font-bold text-rose-400">
                     Rebaja de {((editingPriceItem.basePrice - parseFloat(newPriceInput)) / editingPriceItem.basePrice * 100).toFixed(1)}%
                   </span>
@@ -586,7 +566,7 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
               <Button
                 onClick={() => setEditingPriceItem(null)}
                 variant="ghost"
-                className="flex-1 py-3 rounded-xl text-sm font-bold text-foreground/40 hover:text-foreground"
+                className="flex-1 py-3 rounded-xl text-sm font-bold text-gray-500 hover:text-gray-200"
               >
                 Cancelar
               </Button>
