@@ -15,8 +15,8 @@ import {
 } from 'lucide-react'
 import {
   RevenueChart,
-  RotationChart,
-  StockValueChart,
+  TopSalesChart,
+  StockDonutChart,
 } from '@/components/dashboard/charts'
 
 interface ReportData {
@@ -57,7 +57,7 @@ function StatCard({
 }) {
   return (
     <div className={cn(
-      "glass-panel rounded-2xl p-6 border-border/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(0,247,255,0.15)] hover:border-cyan-500/50 print:bg-transparent print:border-gray-300 print:shadow-none print:hover:translate-y-0 print:break-inside-avoid",
+      "glass-panel rounded-2xl p-6 border-border/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(0,247,255,0.15)] hover:border-cyan-500/50 print:bg-white print:border print:border-gray-200 print:shadow-none print:hover:translate-y-0 print:break-inside-avoid",
       className
     )}>
       <div className="flex justify-between items-start mb-4">
@@ -103,7 +103,7 @@ export function ReportsPageClient({ data }: ReportsPageClientProps) {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-2">
         <StatCard
           title="Ingresos Totales"
           value={`S/ ${data.totalRevenue.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`}
@@ -135,7 +135,7 @@ export function ReportsPageClient({ data }: ReportsPageClientProps) {
         />
       </div>
 
-      <div className="glass-panel rounded-[2rem] p-8 border-border/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(0,247,255,0.15)] hover:border-cyan-500/50 print:bg-transparent print:border-gray-300 print:shadow-none print:rounded-none print:p-0 print:hover:translate-y-0 print:break-inside-avoid">
+      <div className="glass-panel rounded-[2rem] p-8 border-border/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(0,247,255,0.15)] hover:border-cyan-500/50 print:bg-white print:border print:border-gray-200 print:shadow-none print:rounded-none print:p-4 print:hover:translate-y-0 print:break-inside-avoid">
         <div className="flex justify-between items-center mb-8">
           <div>
             <h3 className="text-xl font-bold tracking-tight">Rentabilidad por Mes</h3>
@@ -147,30 +147,20 @@ export function ReportsPageClient({ data }: ReportsPageClientProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="glass-panel rounded-[2rem] p-8 border-border/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(0,247,255,0.15)] hover:border-cyan-500/50 print:bg-transparent print:border-gray-300 print:shadow-none print:rounded-none print:p-0 print:hover:translate-y-0 print:break-inside-avoid">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 print:grid-cols-1 print:block">
+        <div className="glass-panel rounded-[2rem] p-8 border-border/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(0,247,255,0.15)] hover:border-cyan-500/50 print:bg-white print:border print:border-gray-200 print:shadow-none print:rounded-none print:p-4 print:hover:translate-y-0 print:break-inside-avoid">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h3 className="text-lg font-bold tracking-tight">Rotación de Productos</h3>
-              <p className="text-xs text-muted-foreground mt-1">Top 5 más vendidos vs. 5 menos vendidos</p>
-            </div>
-            <div className="flex items-center gap-4 text-xs">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-emerald-400" />
-                <span className="text-muted-foreground print:text-gray-500">Más vendidos</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-rose-400" />
-                <span className="text-muted-foreground print:text-gray-500">Menos vendidos</span>
-              </div>
+              <h3 className="text-lg font-bold tracking-tight">Top 5 Ventas</h3>
+              <p className="text-xs text-muted-foreground mt-1">Productos con mayores ingresos por unidades</p>
             </div>
           </div>
-          <div className="h-[320px] print:h-auto">
-            <RotationChart topProducts={data.topProducts} bottomProducts={data.bottomProducts} />
+          <div className="h-[300px] print:h-auto">
+            <TopSalesChart topProducts={data.topProducts} />
           </div>
         </div>
 
-        <div className="glass-panel rounded-[2rem] p-8 border-border/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(0,247,255,0.15)] hover:border-cyan-500/50 print:bg-transparent print:border-gray-300 print:shadow-none print:rounded-none print:p-0 print:hover:translate-y-0 print:break-inside-avoid">
+        <div className="glass-panel rounded-[2rem] p-8 border-border/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(0,247,255,0.15)] hover:border-cyan-500/50 print:bg-white print:border print:border-gray-200 print:shadow-none print:rounded-none print:p-4 print:hover:translate-y-0 print:break-inside-avoid">
           <div className="flex justify-between items-center mb-6">
             <div>
               <h3 className="text-lg font-bold tracking-tight">Valorización Stock</h3>
@@ -178,20 +168,12 @@ export function ReportsPageClient({ data }: ReportsPageClientProps) {
             </div>
           </div>
           <div className="h-[260px] print:h-auto">
-            <StockValueChart data={data.stockByCategory} />
-          </div>
-          <div className="mt-6 p-4 rounded-xl bg-foreground/[0.02] print:bg-gray-50 print:border print:border-gray-200">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground print:text-gray-600">Valor Total Stock</span>
-              <span className="text-lg font-black text-primary print:text-black">
-                S/ {data.stockValue.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
-              </span>
-            </div>
+            <StockDonutChart data={data.stockByCategory} />
           </div>
         </div>
       </div>
 
-      <div className="glass-panel rounded-[2rem] p-8 border-border/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(0,247,255,0.15)] hover:border-cyan-500/50 print:bg-transparent print:border-gray-300 print:shadow-none print:rounded-none print:p-0 print:hover:translate-y-0 print:break-inside-avoid">
+      <div className="glass-panel rounded-[2rem] p-8 border-border/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(0,247,255,0.15)] hover:border-cyan-500/50 print:bg-white print:border print:border-gray-200 print:shadow-none print:rounded-none print:p-4 print:hover:translate-y-0 print:break-inside-avoid">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h3 className="text-lg font-bold tracking-tight flex items-center gap-2">

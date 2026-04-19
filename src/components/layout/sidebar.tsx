@@ -43,7 +43,7 @@ export function Sidebar({ userRole = 'EMPLOYEE' }: SidebarProps) {
   const pathname = usePathname()
 
   return (
-    <aside className="w-64 h-screen glass-panel border-r border-white/10 flex flex-col relative overflow-hidden">
+    <aside className="w-64 h-screen glass-panel border-r border-white/10 flex flex-col relative overflow-hidden print:hidden">
       <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-[120px] rounded-full -mr-32 -mt-32 pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500/5 blur-[80px] rounded-full -ml-24 -mb-24 pointer-events-none" />
 
