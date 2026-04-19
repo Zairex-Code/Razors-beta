@@ -4,7 +4,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 const PUBLIC_ROUTES = ['/login']
 
 const ADMIN_ROUTES = ['/dashboard/users', '/dashboard/settings', '/dashboard/logs']
-const BOSS_ROUTES = ['/dashboard/reports', '/dashboard/imports', '/dashboard/expenses']
+const BOSS_AND_ADMIN_ROUTES = ['/dashboard/reports', '/dashboard/imports', '/dashboard/expenses']
 
 export async function proxy(request: NextRequest) {
   const response = NextResponse.next({
@@ -47,17 +47,38 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  const userRole = user.user_metadata?.role || 'EMPLOYEE'
+  const { prisma } = await import('@/lib/prisma')
+  const dbUser = await prisma.user.findUnique({
+    where: { email: user.email },
+    select: { role: true, isActive: true },
+  })
 
-  if (ADMIN_ROUTES.some(route => pathname.startsWith(route)) && userRole !== 'ADMIN') {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+  if (!dbUser) {
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  if (BOSS_ROUTES.some(route => pathname.startsWith(route)) && userRole === 'EMPLOYEE') {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+  if (!dbUser.isActive) {
+    await supabase.auth.signOut()
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  response.headers.set('x-user-role', userRole)
+  if (dbUser.role === 'EMPLOYEE') {
+    const isRestricted =
+      ADMIN_ROUTES.some(route => pathname.startsWith(route)) ||
+      BOSS_AND_ADMIN_ROUTES.some(route => pathname.startsWith(route))
+    if (isRestricted) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+  }
+
+  if (dbUser.role === 'BOSS') {
+    const isAdminOnly = ADMIN_ROUTES.some(route => pathname.startsWith(route))
+    if (isAdminOnly) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+  }
+
+  response.headers.set('x-user-role', dbUser.role)
   response.headers.set('x-user-id', user.id)
 
   return response
