@@ -448,7 +448,7 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
                 "rounded-xl p-4 border backdrop-blur-xl",
                 item.hasDiscount
                   ? "bg-rose-500/5 border-rose-500/20"
-                  : "bg-gray-900/40 border-gray-800"
+                  : "bg-gray-900/20 border-gray-800"
               )}>
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1 min-w-0 mr-2">
@@ -484,14 +484,14 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => updateQuantity(item.productId, Math.max(0, item.quantity - 1))}
-                      className="w-7 h-7 rounded-lg bg-gray-800 flex items-center justify-center hover:bg-gray-700 transition-all"
+                      className="w-7 h-7 rounded-lg bg-gray-800/50 border border-gray-700/50 flex items-center justify-center hover:bg-gray-700/50 transition-all backdrop-blur-sm"
                     >
                       <Minus size={11} className="text-gray-400" />
                     </button>
                     <span className="font-bold text-sm text-gray-100 w-7 text-center">{item.quantity}</span>
                     <button
                       onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                      className="w-7 h-7 rounded-lg bg-gray-800 flex items-center justify-center hover:bg-gray-700 transition-all"
+                      className="w-7 h-7 rounded-lg bg-gray-800/50 border border-gray-700/50 flex items-center justify-center hover:bg-gray-700/50 transition-all backdrop-blur-sm"
                     >
                       <Plus size={11} className="text-gray-400" />
                     </button>
@@ -516,7 +516,7 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
           )}
         </div>
 
-        <div className="p-6 border-t border-gray-800 space-y-4 bg-black/60 shrink-0">
+        <div className="p-6 border-t border-gray-800 space-y-4 bg-black/40 shrink-0">
           {hasDiscountItems.length > 0 && (
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-rose-500/10 border border-rose-500/20">
               <Percent size={13} className="text-rose-400 shrink-0" />
