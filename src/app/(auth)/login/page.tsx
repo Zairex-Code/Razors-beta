@@ -42,7 +42,7 @@ export default function LoginPage() {
           <p className="text-muted-foreground">Sistema CRM/ERP</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" suppressHydrationWarning>
           <div className="space-y-2">
             <Label htmlFor="email">Correo electrónico</Label>
             <Input
@@ -52,6 +52,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              suppressHydrationWarning
               className="bg-secondary/50 border-cyan-500/30 focus:border-cyan-400"
             />
           </div>
@@ -65,6 +66,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              suppressHydrationWarning
               className="bg-secondary/50 border-cyan-500/30 focus:border-cyan-400"
             />
           </div>
