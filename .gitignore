@@ -55,3 +55,6 @@ test-prisma.js
 .vscode/
 *.swp
 *.swo
+
+# Prototipo (reference only)
+prototipo/
