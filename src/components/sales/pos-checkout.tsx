@@ -60,9 +60,10 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
   const [showCustomerSelect, setShowCustomerSelect] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [saleComplete, setSaleComplete] = useState<{ invoiceNumber: string; total: number } | null>(null)
+  const [saleComplete, setSaleComplete] = useState<{ invoiceNumber: string; total: number; status: 'PAID' | 'PENDING' } | null>(null)
   const [editingPriceItem, setEditingPriceItem] = useState<CartItem | null>(null)
   const [newPriceInput, setNewPriceInput] = useState('')
+  const [saleStatus, setSaleStatus] = useState<'PAID' | 'PENDING'>('PAID')
 
   const [customerSearchQuery, setCustomerSearchQuery] = useState('')
   const [showCreateCustomer, setShowCreateCustomer] = useState(false)
@@ -162,6 +163,7 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
         customerId: selectedCustomer?.id || 'default-customer-id',
         userId,
         locationId,
+        status: saleStatus,
         items: cart.map(item => ({
           productId: item.productId,
           quantity: item.quantity,
@@ -174,7 +176,7 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
         totalAmount: cartTotal,
         invoiceNumber
       })
-      setSaleComplete({ invoiceNumber, total: cartTotal })
+      setSaleComplete({ invoiceNumber, total: cartTotal, status: saleStatus })
       clearCart()
     } catch (error) {
       console.error('Error processing sale:', error)
@@ -294,6 +296,16 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
                 <span className="text-muted-foreground text-sm">Total</span>
                 <span className="text-2xl font-black text-foreground">
                   S/ {saleComplete.total.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground text-sm">Estado</span>
+                <span className={`text-xs font-bold px-3 py-1 rounded-full ${
+                  saleComplete.status === 'PAID'
+                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                    : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                }`}>
+                  {saleComplete.status === 'PAID' ? 'Pagada' : 'Pendiente'}
                 </span>
               </div>
               {hasDiscountItems.length > 0 && (
@@ -527,6 +539,34 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
           )}
 
           <div className="space-y-2">
+            <div className="flex items-center justify-between p-3 rounded-xl bg-gray-800/30 border border-gray-700/50">
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Estado de pago</span>
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  onClick={() => setSaleStatus('PAID')}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    saleStatus === 'PAID'
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                      : 'text-gray-500 hover:text-gray-300'
+                  }`}
+                >
+                  Pagada
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSaleStatus('PENDING')}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    saleStatus === 'PENDING'
+                      ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                      : 'text-gray-500 hover:text-gray-300'
+                  }`}
+                >
+                  Pendiente
+                </button>
+              </div>
+            </div>
+
             <div className="flex justify-between text-xs text-gray-500">
               <span>Subtotal</span>
               <span>S/ {subtotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
@@ -551,16 +591,16 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
                 <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
                 Procesando...
               </div>
-            ) : (
-              <>
-                <CreditCard size={16} className="mr-2" />
-                Cobrar S/ {cartTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
-              </>
-            )}
-          </Button>
+              ) : (
+                <>
+                  <CreditCard size={16} className="mr-2" />
+                  {saleStatus === 'PAID' ? 'Cobrar' : 'Registrar'} S/ {cartTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                </>
+              )}
+            </Button>
 
           <p className="text-[10px] text-center text-gray-600">
-            {locationName} • Venta al contado
+            {locationName} • {saleStatus === 'PAID' ? 'Venta al contado' : 'Pendiente de pago'}
           </p>
         </div>
       </div>

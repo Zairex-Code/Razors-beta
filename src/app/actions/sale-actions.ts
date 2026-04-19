@@ -62,6 +62,7 @@ export async function createSale(data: {
   customerId: string
   userId: string
   locationId: string
+  status: 'PAID' | 'PENDING'
   items: Array<{
     productId: string
     quantity: number
@@ -81,7 +82,7 @@ export async function createSale(data: {
       userId: data.userId,
       locationId: data.locationId,
       totalAmount: data.totalAmount,
-      status: 'PAID',
+      status: data.status,
       items: {
         create: data.items.map(item => ({
           productId: item.productId,
