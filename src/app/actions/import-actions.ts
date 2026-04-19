@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { ImportStatus } from '@prisma/client'
+import { requireBossOrAdmin } from './auth-actions'
 
 export async function getImports(status?: ImportStatus) {
   return prisma.import.findMany({
@@ -60,6 +61,8 @@ export async function createImport(data: {
   }>
   delivered?: boolean
 }) {
+  await requireBossOrAdmin()
+
   const importOrder = await prisma.import.create({
     data: {
       provider: data.provider,
@@ -135,6 +138,8 @@ export async function createImport(data: {
 }
 
 export async function updateImportStatus(id: string, status: ImportStatus) {
+  await requireBossOrAdmin()
+
   const currentImport = await prisma.import.findUnique({
     where: { id },
     include: { items: true }
@@ -199,6 +204,8 @@ export async function updateImportStatus(id: string, status: ImportStatus) {
 }
 
 export async function deleteImport(id: string) {
+  await requireBossOrAdmin()
+
   await prisma.import.delete({
     where: { id }
   })
@@ -207,6 +214,7 @@ export async function deleteImport(id: string) {
 }
 
 export async function clearCostVoucher(costId: string) {
+  await requireBossOrAdmin()
   await prisma.importCost.update({
     where: { id: costId },
     data: { voucherUrl: null }
@@ -216,6 +224,7 @@ export async function clearCostVoucher(costId: string) {
 }
 
 export async function deleteDocument(documentId: string) {
+  await requireBossOrAdmin()
   await prisma.document.delete({
     where: { id: documentId }
   })

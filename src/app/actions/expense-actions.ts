@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { requireBossOrAdmin } from './auth-actions'
 
 export async function getExpenses(status?: string) {
   return prisma.expense.findMany({
@@ -23,6 +24,8 @@ export async function createExpense(data: {
   status: string
   voucherUrl?: string
 }) {
+  await requireBossOrAdmin()
+
   const expense = await prisma.expense.create({
     data: {
       category: data.category,
@@ -38,6 +41,8 @@ export async function createExpense(data: {
 }
 
 export async function updateExpenseStatus(id: string, status: string) {
+  await requireBossOrAdmin()
+
   const expense = await prisma.expense.update({
     where: { id },
     data: { status }
@@ -48,6 +53,8 @@ export async function updateExpenseStatus(id: string, status: string) {
 }
 
 export async function deleteExpense(id: string) {
+  await requireBossOrAdmin()
+
   await prisma.expense.delete({
     where: { id }
   })

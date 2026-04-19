@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { Role } from '@prisma/client'
+import { requireAdmin } from './auth-actions'
 
 export async function getUsers() {
   return prisma.user.findMany({
@@ -19,6 +20,8 @@ export async function getUsers() {
 }
 
 export async function toggleUserStatus(userId: string, currentStatus: boolean) {
+  await requireAdmin()
+
   const updatedUser = await prisma.user.update({
     where: { id: userId },
     data: { isActive: !currentStatus }
@@ -29,6 +32,8 @@ export async function toggleUserStatus(userId: string, currentStatus: boolean) {
 }
 
 export async function changeUserRole(userId: string, newRole: Role) {
+  await requireAdmin()
+
   const updatedUser = await prisma.user.update({
     where: { id: userId },
     data: { role: newRole }
@@ -44,6 +49,8 @@ export async function createUser(data: {
   password: string
   role: Role
 }) {
+  await requireAdmin()
+
   const user = await prisma.user.create({
     data: {
       name: data.name,

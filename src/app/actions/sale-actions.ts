@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { SaleStatus } from '@prisma/client'
+import { requireAuth, requireBossOrAdmin } from './auth-actions'
 
 export async function getSales(options: {
   status?: SaleStatus
@@ -75,6 +76,8 @@ export async function createSale(data: {
   totalAmount: number
   invoiceNumber: string
 }) {
+  await requireAuth()
+
   const sale = await prisma.sale.create({
     data: {
       invoiceNumber: data.invoiceNumber,
@@ -117,6 +120,8 @@ export async function createSale(data: {
 }
 
 export async function voidSale(saleId: string) {
+  await requireBossOrAdmin()
+
   const sale = await prisma.sale.findUnique({
     where: { id: saleId },
     include: { items: true }

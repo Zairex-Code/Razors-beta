@@ -323,7 +323,7 @@ export function SalesTable({ sales }: SalesTableProps) {
                                       </tr>
                                     ))}
                                     <tr className="bg-foreground/[0.01]">
-                                      <td colSpan={4} className="px-4 py-3 text-right font-bold text-muted-foreground uppercase tracking-widest">
+                                      <td colSpan={5} className="px-4 py-3 text-right font-bold text-muted-foreground uppercase tracking-widest">
                                         Subtotal
                                       </td>
                                       <td className="px-4 py-3 text-right font-medium">
@@ -331,7 +331,7 @@ export function SalesTable({ sales }: SalesTableProps) {
                                       </td>
                                     </tr>
                                     <tr className="bg-foreground/[0.01]">
-                                      <td colSpan={4} className="px-4 py-3 text-right font-bold text-muted-foreground uppercase tracking-widest">
+                                      <td colSpan={5} className="px-4 py-3 text-right font-bold text-muted-foreground uppercase tracking-widest">
                                         IGV (18%)
                                       </td>
                                       <td className="px-4 py-3 text-right font-medium">
@@ -339,7 +339,7 @@ export function SalesTable({ sales }: SalesTableProps) {
                                       </td>
                                     </tr>
                                     <tr className="bg-primary/5">
-                                      <td colSpan={4} className="px-4 py-3 text-right font-black text-primary uppercase tracking-widest">
+                                      <td colSpan={5} className="px-4 py-3 text-right font-black text-primary uppercase tracking-widest">
                                         Total
                                       </td>
                                       <td className="px-4 py-3 text-right font-black text-primary">
