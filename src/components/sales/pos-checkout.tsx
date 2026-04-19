@@ -43,6 +43,7 @@ interface Customer {
   name: string
   docType: string
   docNumber: string
+  phone?: string | null
 }
 
 interface POSCheckoutProps {
@@ -93,7 +94,8 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
     const q = customerSearchQuery.toLowerCase()
     return customers.filter(c =>
       c.name.toLowerCase().includes(q) ||
-      c.docNumber.includes(q)
+      c.docNumber.includes(q) ||
+      (c.phone && c.phone.includes(customerSearchQuery))
     )
   }, [customers, customerSearchQuery])
 
@@ -598,41 +600,43 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
                   </div>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                  {filteredCustomers.length === 0 && customerSearchQuery.trim() ? (
-                    <div className="text-center py-8 space-y-4">
-                      <div className="w-16 h-16 rounded-full bg-gray-800/50 flex items-center justify-center mx-auto">
-                        <User size={28} className="text-gray-600" />
+                  {filteredCustomers.map(customer => (
+                    <button
+                      key={customer.id}
+                      onClick={() => handleSelectCustomer(customer)}
+                      className="w-full rounded-xl p-4 flex items-center gap-4 border border-gray-800 hover:border-primary/40 hover:bg-primary/5 transition-all text-left"
+                    >
+                      <User size={20} className="text-primary shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm text-gray-100 truncate">{customer.name}</p>
+                        <p className="text-xs text-gray-500">{customer.docType} {customer.docNumber}{customer.phone ? ` • ${customer.phone}` : ''}</p>
+                      </div>
+                    </button>
+                  ))}
+
+                  <div className="border-t border-gray-700 pt-3 mt-3">
+                    <button
+                      onClick={() => {
+                        setShowCreateCustomer(true)
+                        if (customerSearchQuery.trim()) {
+                          setNewCustomerName(customerSearchQuery)
+                        }
+                      }}
+                      className="w-full rounded-xl p-4 flex items-center gap-4 bg-primary/5 border border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-all text-left group"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-all">
+                        <Plus size={18} className="text-primary" />
                       </div>
                       <div>
-                        <p className="text-gray-400 text-sm mb-1">No se encontraron clientes</p>
-                        <p className="text-gray-600 text-xs">¿Deseas crear uno nuevo?</p>
+                        <p className="font-bold text-sm text-primary">Agregar nuevo cliente</p>
+                        <p className="text-xs text-gray-500">
+                          {customerSearchQuery.trim()
+                            ? `Crear "${customerSearchQuery}" o buscar otro`
+                            : 'Registrar un cliente nuevo en el sistema'}
+                        </p>
                       </div>
-                      <Button
-                        onClick={() => {
-                          setShowCreateCustomer(true)
-                          setNewCustomerName(customerSearchQuery)
-                        }}
-                        className="bg-primary text-primary-foreground font-bold neon-glow hover:scale-[1.02]"
-                      >
-                        <Plus size={14} className="mr-2" />
-                        Agregar: &quot;{customerSearchQuery}&quot;
-                      </Button>
-                    </div>
-                  ) : (
-                    filteredCustomers.map(customer => (
-                      <button
-                        key={customer.id}
-                        onClick={() => handleSelectCustomer(customer)}
-                        className="w-full rounded-xl p-4 flex items-center gap-4 border border-gray-800 hover:border-primary/40 hover:bg-primary/5 transition-all text-left"
-                      >
-                        <User size={20} className="text-primary shrink-0" />
-                        <div>
-                          <p className="font-bold text-sm text-gray-100">{customer.name}</p>
-                          <p className="text-xs text-gray-500">{customer.docType} {customer.docNumber}</p>
-                        </div>
-                      </button>
-                    ))
-                  )}
+                    </button>
+                  </div>
                 </div>
               </>
             ) : (
