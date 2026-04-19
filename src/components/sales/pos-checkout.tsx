@@ -183,11 +183,19 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
       })
       setSaleComplete({ invoiceNumber, total: grandTotal, status: saleStatus })
       clearCart()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error processing sale:', error)
+      let errorMessage = 'No se pudo procesar la venta.'
+
+      if (error?.message?.includes('customerId') || error?.message?.includes('Foreign key')) {
+        errorMessage = 'Selecciona un cliente antes de cobrar. Usa el botón "Sin cliente" arriba del carrito.'
+      } else if (error?.message) {
+        errorMessage = error.message
+      }
+
       Swal.fire({
         title: 'Error',
-        text: 'No se pudo procesar la venta.',
+        text: errorMessage,
         icon: 'error',
         background: '#0a0a0a',
         color: '#ffffff',
