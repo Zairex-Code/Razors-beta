@@ -12,7 +12,7 @@ import {
   Pie,
   Cell,
 } from 'recharts'
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from '@/components/ui/chart'
 
 interface RevenueChartProps {
   data: Array<{
@@ -51,6 +51,7 @@ export function RevenueChart({ data }: RevenueChartProps) {
         <XAxis dataKey="date" stroke="#00f7ff" fontSize={12} tickLine={false} axisLine={{ stroke: '#00f7ff', strokeOpacity: 0.3 }} />
         <YAxis stroke="#00f7ff" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `S/${(v/1000).toFixed(0)}k`} />
         <ChartTooltip content={<ChartTooltipContent indicator="dot" />} />
+        <ChartLegend content={<ChartLegendContent />} />
         <Area type="monotone" dataKey="revenue" stroke="#00f7ff" strokeWidth={2} fill="url(#gradientRevenue)" />
         <Area type="monotone" dataKey="expenses" stroke="#f472b6" strokeWidth={2} fill="url(#gradientExpenses)" />
         <Area type="monotone" dataKey="profit" stroke="#34d399" strokeWidth={2} fill="url(#gradientProfit)" />
@@ -65,14 +66,13 @@ interface RotationChartProps {
 }
 
 const rotationChartConfig = {
-  top: { label: 'Más vendidos', color: '#34d399' },
-  bottom: { label: 'Menos vendidos', color: '#f87171' },
+  quantity: { label: 'Cantidad', color: '#00f7ff' },
 } satisfies ChartConfig
 
 export function RotationChart({ topProducts, bottomProducts }: RotationChartProps) {
   const combined = [
-    ...topProducts.map((p) => ({ name: p.name.length > 20 ? p.name.substring(0, 20) + '...' : p.name, quantity: p.quantity, type: 'top' })),
-    ...bottomProducts.map((p) => ({ name: p.name.length > 20 ? p.name.substring(0, 20) + '...' : p.name, quantity: p.quantity, type: 'bottom' })),
+    ...topProducts.map((p) => ({ name: p.name.length > 18 ? p.name.substring(0, 18) + '…' : p.name, quantity: p.quantity, fill: '#34d399' })),
+    ...bottomProducts.map((p) => ({ name: p.name.length > 18 ? p.name.substring(0, 18) + '…' : p.name, quantity: p.quantity, fill: '#f87171' })),
   ]
 
   return (
@@ -82,9 +82,10 @@ export function RotationChart({ topProducts, bottomProducts }: RotationChartProp
         <XAxis type="number" stroke="#00f7ff" fontSize={12} tickLine={false} axisLine={{ stroke: '#00f7ff', strokeOpacity: 0.3 }} />
         <YAxis dataKey="name" type="category" stroke="#00f7ff" width={90} fontSize={10} tickLine={false} />
         <ChartTooltip content={<ChartTooltipContent indicator="dot" />} />
+        <ChartLegend content={<ChartLegendContent />} />
         <Bar dataKey="quantity" radius={[0, 4, 4, 0]} maxBarSize={24}>
           {combined.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={entry.type === 'top' ? '#34d399' : '#f87171'} />
+            <Cell key={`cell-${index}`} fill={entry.fill} />
           ))}
         </Bar>
       </BarChart>
@@ -97,27 +98,36 @@ interface StockValueChartProps {
 }
 
 const stockChartConfig = {
-  value: { label: 'Valorización', color: '#00f7ff' },
+  RENT: { label: 'Alquiler', color: '#00f7ff' },
+  MARKETING: { label: 'Marketing', color: '#f472b6' },
+  UTILITIES: { label: 'Servicios', color: '#34d399' },
+  LOGISTICS: { label: 'Logística', color: '#fbbf24' },
+  SUPPLIES: { label: 'Insumos', color: '#a78bfa' },
+  OTHER: { label: 'Otros', color: '#94a3b8' },
 } satisfies ChartConfig
 
-const CATEGORY_COLORS = ['#00f7ff', '#f472b6', '#34d399', '#fbbf24', '#a78bfa']
-
 export function StockValueChart({ data }: StockValueChartProps) {
-  const total = data.reduce((acc, d) => acc + d.value, 0)
+  const CATEGORY_COLORS = ['#00f7ff', '#f472b6', '#34d399', '#fbbf24', '#a78bfa', '#94a3b8']
 
   return (
     <ChartContainer config={stockChartConfig} className="w-full h-full">
       <PieChart>
-        <Pie data={data} cx="50%" cy="50%" outerRadius={110} innerRadius={65} dataKey="value" nameKey="category" paddingAngle={2}>
+        <Pie
+          data={data}
+          cx="50%"
+          cy="50%"
+          outerRadius={110}
+          innerRadius={60}
+          dataKey="value"
+          nameKey="category"
+          paddingAngle={2}
+        >
           {data.map((_, index) => (
             <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />
           ))}
         </Pie>
         <ChartTooltip content={<ChartTooltipContent indicator="dot" />} />
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <p className="text-xs text-muted-foreground font-medium">Total</p>
-          <p className="text-xl font-black text-primary">S/{(total/1000).toFixed(1)}k</p>
-        </div>
+        <ChartLegend content={<ChartLegendContent />} />
       </PieChart>
     </ChartContainer>
   )
