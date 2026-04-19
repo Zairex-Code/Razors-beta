@@ -36,7 +36,7 @@ export default async function DashboardLayout({
       <div className="relative z-10 flex h-screen w-full">
         <Sidebar userRole={dbUser.role} />
         <MobileNav userRole={dbUser.role} userName={dbUser.name} />
-        <main className="flex-1 flex flex-col relative overflow-y-auto">
+        <main className="flex-1 flex flex-col relative overflow-y-auto p-8 md:p-10 print:p-0">
           {children}
         </main>
       </div>
