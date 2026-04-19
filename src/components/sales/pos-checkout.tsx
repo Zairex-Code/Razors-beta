@@ -547,7 +547,7 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
                         <p className="font-black text-rose-400 text-sm">S/ {item.subtotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
                       </div>
                     ) : (
-                      <p className="font-black text-primary text-sm">
+                      <p className="font-black text-primary text-sm bg-transparent">
                         S/ {item.subtotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
                       </p>
                     )}
@@ -562,7 +562,7 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
           {hasDiscountItems.length > 0 && (
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-rose-500/10 border border-rose-500/20">
               <Percent size={13} className="text-rose-400 shrink-0" />
-              <span className="text-[10px] font-bold text-rose-400">
+              <span className="text-[10px] font-bold text-rose-400 bg-transparent">
                 {hasDiscountItems.length} producto(s) con precio rebajado
               </span>
             </div>
@@ -579,7 +579,7 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
             </div>
             <div className="flex justify-between text-lg font-black text-gray-100 pt-2 border-t border-gray-800">
               <span>Total</span>
-              <span className="text-primary neon-glow">S/ {cartTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
+              <span className="text-primary bg-transparent">S/ {cartTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
             </div>
           </div>
 
