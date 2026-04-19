@@ -1,16 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { cn } from '@/lib/utils'
 import {
   Search,
   Package,
   Plus,
-  X,
   ChevronDown,
+  Pencil,
+  Trash2,
 } from 'lucide-react'
+import Swal from 'sweetalert2'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { ProductModal } from '@/components/ui/product-modal'
+import { deleteProduct } from '@/app/actions/product-actions'
 
 interface InventoryItem {
   id: string
@@ -35,6 +39,10 @@ interface InventoryTableProps {
 export function InventoryTable({ products }: InventoryTableProps) {
   const [search, setSearch] = useState('')
   const [expandedProductId, setExpandedProductId] = useState<string | null>(null)
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [productToEdit, setProductToEdit] = useState<InventoryItem | null>(null)
+  const [isPending, startTransition] = useTransition()
 
   const filteredProducts = products.filter(
     (product) =>
@@ -47,13 +55,63 @@ export function InventoryTable({ products }: InventoryTableProps) {
     return product.inventory.reduce((sum, inv) => sum + inv.stock, 0)
   }
 
-  const getStockByLocation = (product: InventoryItem, locationName: string) => {
-    return product.inventory.find((inv) => inv.location.name === locationName)?.stock || 0
+  const handleEdit = (product: InventoryItem) => {
+    setProductToEdit(product)
+    setEditModalOpen(true)
+  }
+
+  const handleDelete = (product: InventoryItem) => {
+    Swal.fire({
+      title: '¿Eliminar Producto?',
+      text: product.name,
+      icon: 'warning',
+      background: '#0a0a0a',
+      color: '#ffffff',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      customClass: {
+        popup: 'glass-panel',
+      }
+    }).then((result) => {
+      if (!result.isConfirmed) return
+
+      startTransition(async () => {
+        try {
+          const result = await deleteProduct(product.id)
+          Swal.fire({
+            title: result.softDeleted ? 'Desactivado' : 'Eliminado',
+            text: result.softDeleted
+              ? 'El producto tenía historial y fue desactivado.'
+              : 'El producto ha sido eliminado.',
+            icon: 'success',
+            background: '#0a0a0a',
+            color: '#ffffff',
+            confirmButtonColor: '#00f7ff',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2000,
+          })
+        } catch (error) {
+          console.error('Error deleting product:', error)
+          Swal.fire({
+            title: 'Error',
+            text: 'No se pudo eliminar el producto.',
+            icon: 'error',
+            background: '#0a0a0a',
+            color: '#ffffff',
+            confirmButtonColor: '#00f7ff',
+          })
+        }
+      })
+    })
   }
 
   return (
     <div className="space-y-6">
-      {/* Search and Actions Bar */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="relative group flex-1 max-w-md">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/30 group-focus-within:text-primary transition-colors" size={20} />
@@ -66,19 +124,20 @@ export function InventoryTable({ products }: InventoryTableProps) {
           />
         </div>
 
-        <Button className="flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm tracking-tight neon-glow hover:scale-[1.02] active:scale-[0.98] transition-all">
-          <Package size={18} />
+        <Button
+          onClick={() => setIsAddModalOpen(true)}
+          className="flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm tracking-tight neon-glow hover:scale-[1.02] active:scale-[0.98] transition-all"
+        >
+          <Plus size={18} />
           Agregar Producto
         </Button>
       </div>
 
-      {/* Table */}
       <div className="glass-panel rounded-[2rem] p-8 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/5 blur-[120px] rounded-full -mr-48 -mt-48 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-blue-500/5 blur-[100px] rounded-full -ml-32 -mb-32 pointer-events-none" />
 
         <div className="relative z-10 space-y-4">
-          {/* Header Row */}
           <div className="grid grid-cols-12 px-8 py-4 text-muted-foreground text-[10px] uppercase tracking-[0.25em] font-bold">
             <div className="col-span-2">SKU</div>
             <div className="col-span-4">Producto</div>
@@ -87,7 +146,6 @@ export function InventoryTable({ products }: InventoryTableProps) {
             <div className="col-span-2 text-right">Stock Total</div>
           </div>
 
-          {/* Product Rows */}
           {filteredProducts.map((product) => {
             const isExpanded = expandedProductId === product.id
             const totalStock = getTotalStock(product)
@@ -137,12 +195,10 @@ export function InventoryTable({ products }: InventoryTableProps) {
                   </div>
                 </button>
 
-                {/* Expanded Detail Panel */}
                 {isExpanded && (
                   <div className="glass-panel bg-black/40 border-primary/20 rounded-2xl p-8 ml-6 border-l-4 border-l-primary/60 shadow-2xl space-y-6">
                     <div className="flex flex-col lg:flex-row gap-10">
-                      {/* Stock Breakdown */}
-                      <div className="space-y-4">
+                      <div className="space-y-4 flex-1">
                         <h5 className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">
                           Stock por Ubicación
                         </h5>
@@ -163,8 +219,7 @@ export function InventoryTable({ products }: InventoryTableProps) {
                         </div>
                       </div>
 
-                      {/* Product Details */}
-                      <div className="flex-1 space-y-4">
+                      <div className="space-y-4 flex-1">
                         <h5 className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">
                           Detalles del Producto
                         </h5>
@@ -188,6 +243,24 @@ export function InventoryTable({ products }: InventoryTableProps) {
                             <p className="font-black">{totalStock} unidades</p>
                           </div>
                         </div>
+
+                        <div className="flex gap-3 pt-4 border-t border-border/30">
+                          <button
+                            onClick={() => handleEdit(product)}
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-all text-sm font-bold"
+                          >
+                            <Pencil size={14} />
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => handleDelete(product)}
+                            disabled={isPending}
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20 transition-all text-sm font-bold disabled:opacity-50"
+                          >
+                            <Trash2 size={14} />
+                            Eliminar
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -206,6 +279,24 @@ export function InventoryTable({ products }: InventoryTableProps) {
           )}
         </div>
       </div>
+
+      <ProductModal
+        isOpen={isAddModalOpen}
+        mode="create"
+        onClose={() => setIsAddModalOpen(false)}
+        onSaved={() => {}}
+      />
+
+      <ProductModal
+        isOpen={editModalOpen}
+        mode="edit"
+        product={productToEdit || undefined}
+        onClose={() => {
+          setEditModalOpen(false)
+          setProductToEdit(null)
+        }}
+        onSaved={() => {}}
+      />
     </div>
   )
 }

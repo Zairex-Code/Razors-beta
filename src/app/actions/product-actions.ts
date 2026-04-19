@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 
 export async function getProducts() {
   return prisma.product.findMany({
+    where: { isActive: true },
     include: {
       inventory: {
         include: {
@@ -109,4 +110,59 @@ export async function updateInventoryStock(
     where: { productId_locationId: { productId, locationId } },
     data: { stock: Math.max(0, newStock) }
   })
+}
+
+export async function updateProduct(id: string, data: {
+  name: string
+  category: string
+  pricePen: number
+}) {
+  const product = await prisma.product.update({
+    where: { id },
+    data: {
+      name: data.name,
+      category: data.category,
+      pricePen: data.pricePen
+    }
+  })
+
+  revalidatePath('/dashboard/inventory')
+  return product
+}
+
+export async function deleteProduct(id: string, force: boolean = false) {
+  const product = await prisma.product.findUnique({
+    where: { id },
+    include: {
+      saleItems: true,
+      importItems: true
+    }
+  })
+
+  if (!product) {
+    throw new Error('Producto no encontrado')
+  }
+
+  const hasHistory = product.saleItems.length > 0 || product.importItems.length > 0
+
+  if (hasHistory) {
+    await prisma.product.update({
+      where: { id },
+      data: { isActive: false }
+    })
+  } else {
+    if (force) {
+      await prisma.product.delete({
+        where: { id }
+      })
+    } else {
+      await prisma.product.update({
+        where: { id },
+        data: { isActive: false }
+      })
+    }
+  }
+
+  revalidatePath('/dashboard/inventory')
+  return { success: true, softDeleted: hasHistory }
 }

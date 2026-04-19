@@ -53,6 +53,12 @@ export async function createImport(data: {
     exchangeRate?: number
     voucherUrl?: string
   }>
+  documents?: Array<{
+    type: string
+    url: string
+    name: string
+  }>
+  delivered?: boolean
 }) {
   const importOrder = await prisma.import.create({
     data: {
@@ -60,7 +66,7 @@ export async function createImport(data: {
       piNumber: data.piNumber,
       eta: data.eta ? new Date(data.eta) : null,
       exchangeRate: data.exchangeRate,
-      status: 'PLANNING',
+      status: data.delivered ? 'DELIVERED' : 'PLANNING',
       items: {
         create: data.items.map(item => ({
           productId: item.productId,
@@ -87,26 +93,21 @@ export async function createImport(data: {
             voucherUrl: cost.voucherUrl
           }))
         ]
-      }
+      },
+      documents: data.documents ? {
+        create: data.documents.map(doc => ({
+          type: doc.type,
+          url: doc.url,
+          name: doc.name
+        }))
+      } : undefined
     },
-    include: { items: true, costs: true }
+    include: { items: true, costs: true, documents: true }
   })
 
-  revalidatePath('/dashboard/imports')
-  return importOrder
-}
-
-export async function updateImportStatus(id: string, status: ImportStatus) {
-  const importOrder = await prisma.import.update({
-    where: { id },
-    data: { status },
-    include: { items: true }
-  })
-
-  if (status === 'DELIVERED') {
+  if (data.delivered) {
+    const locations = await prisma.location.findMany()
     for (const item of importOrder.items) {
-      const locations = await prisma.location.findMany()
-
       for (const location of locations) {
         await prisma.inventory.upsert({
           where: {
@@ -129,12 +130,94 @@ export async function updateImportStatus(id: string, status: ImportStatus) {
   }
 
   revalidatePath('/dashboard/imports')
+  revalidatePath('/dashboard/inventory')
+  return importOrder
+}
+
+export async function updateImportStatus(id: string, status: ImportStatus) {
+  const currentImport = await prisma.import.findUnique({
+    where: { id },
+    include: { items: true }
+  })
+
+  if (!currentImport) {
+    throw new Error('Import not found')
+  }
+
+  const previousStatus = currentImport.status
+
+  const importOrder = await prisma.import.update({
+    where: { id },
+    data: { status },
+    include: { items: true }
+  })
+
+  if (previousStatus === 'DELIVERED' && status !== 'DELIVERED') {
+    for (const item of importOrder.items) {
+      const locations = await prisma.location.findMany()
+      for (const location of locations) {
+        await prisma.inventory.update({
+          where: {
+            productId_locationId: {
+              productId: item.productId,
+              locationId: location.id
+            }
+          },
+          data: {
+            stock: { decrement: item.quantity }
+          }
+        })
+      }
+    }
+  } else if (previousStatus !== 'DELIVERED' && status === 'DELIVERED') {
+    for (const item of importOrder.items) {
+      const locations = await prisma.location.findMany()
+      for (const location of locations) {
+        await prisma.inventory.upsert({
+          where: {
+            productId_locationId: {
+              productId: item.productId,
+              locationId: location.id
+            }
+          },
+          update: {
+            stock: { increment: item.quantity }
+          },
+          create: {
+            productId: item.productId,
+            locationId: location.id,
+            stock: item.quantity
+          }
+        })
+      }
+    }
+  }
+
+  revalidatePath('/dashboard/imports')
+  revalidatePath('/dashboard/inventory')
   return importOrder
 }
 
 export async function deleteImport(id: string) {
   await prisma.import.delete({
     where: { id }
+  })
+
+  revalidatePath('/dashboard/imports')
+}
+
+export async function clearCostVoucher(costId: string) {
+  await prisma.importCost.update({
+    where: { id: costId },
+    data: { voucherUrl: null }
+  })
+
+  revalidatePath('/dashboard/imports')
+}
+
+export async function deleteDocument(documentId: string) {
+  await prisma.document.delete({
+    where: { id: documentId }
   })
 
   revalidatePath('/dashboard/imports')

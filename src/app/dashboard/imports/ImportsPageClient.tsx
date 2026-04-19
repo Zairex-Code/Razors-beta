@@ -1,10 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition, useOptimistic } from 'react'
 import { Ship, Plus } from 'lucide-react'
 import { ImportsTable } from '@/components/imports/imports-table'
 import { ImportWizard } from '@/components/imports/import-wizard'
 import { Button } from '@/components/ui/button'
+import { updateImportStatus } from '@/app/actions/import-actions'
+import type { ImportStatus } from '@prisma/client'
 
 interface Import {
   id: string
@@ -52,8 +54,23 @@ interface ImportsPageClientProps {
 }
 
 export default function ImportsPageClient({ initialImports, providers, products }: ImportsPageClientProps) {
-  const [imports, setImports] = useState<Import[]>(initialImports)
   const [isWizardOpen, setIsWizardOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
+  const [optimisticImports, setOptimisticImports] = useOptimistic(
+    initialImports,
+    (state: Import[], { importId, newStatus }: { importId: string, newStatus: ImportStatus }) =>
+      state.map(imp =>
+        imp.id === importId ? { ...imp, status: newStatus } : imp
+      )
+  )
+
+  const handleStatusChange = async (importId: string, newStatus: ImportStatus) => {
+    setOptimisticImports({ importId, newStatus })
+
+    startTransition(async () => {
+      await updateImportStatus(importId, newStatus)
+    })
+  }
 
   const handleWizardComplete = () => {
     setIsWizardOpen(false)
@@ -82,7 +99,7 @@ export default function ImportsPageClient({ initialImports, providers, products 
         </Button>
       </div>
 
-      <ImportsTable imports={imports} />
+      <ImportsTable imports={optimisticImports} onStatusChange={handleStatusChange} isProcessing={isPending} />
 
       {isWizardOpen && (
         <ImportWizard

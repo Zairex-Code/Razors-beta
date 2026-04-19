@@ -129,7 +129,7 @@ export function SmartSearch<T extends SearchItem>({
         <div className="absolute z-50 w-full mt-2 bg-[#111111] border border-gray-800 rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-64 overflow-y-auto">
           {results.length === 0 && !isLoading ? (
             <div className="p-4 text-center text-gray-500 text-sm">
-              No results found
+              No se encontraron resultados
             </div>
           ) : (
             results.map((item) => (
@@ -166,7 +166,7 @@ export function SmartSearch<T extends SearchItem>({
               className="w-full text-left px-4 py-3 bg-primary/5 hover:bg-primary/10 text-primary text-sm font-bold flex items-center gap-2 transition-colors border-t border-gray-800"
             >
               <Plus className="w-4 h-4" />
-              Register new: &quot;{query}&quot;
+              Registrar nuevo: &quot;{query}&quot;
             </button>
           )}
         </div>
@@ -181,7 +181,7 @@ export function SmartSearch<T extends SearchItem>({
               <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-3">
                   <Package className="w-5 h-5 text-primary" />
-                  <h3 className="text-xl font-bold text-white tracking-tight">Register New Item</h3>
+                  <h3 className="text-xl font-bold text-white tracking-tight">Registrar Nuevo Item</h3>
                 </div>
                 <button
                   onClick={() => setShowCreateModal(false)}
@@ -193,7 +193,7 @@ export function SmartSearch<T extends SearchItem>({
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-widest text-gray-400 ml-1">Name</label>
+                  <label className="text-xs font-bold uppercase tracking-widest text-gray-400 ml-1">Nombre</label>
                   <input
                     type="text"
                     value={query}
@@ -207,7 +207,7 @@ export function SmartSearch<T extends SearchItem>({
                     onClick={() => setShowCreateModal(false)}
                     className="px-6 py-3 rounded-xl text-sm font-bold text-gray-400 hover:text-white hover:bg-foreground/5 transition-all"
                   >
-                    Cancel
+                    Cancelar
                   </button>
                   <button
                     onClick={handleCreateNew}
@@ -217,12 +217,12 @@ export function SmartSearch<T extends SearchItem>({
                     {isCreating ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        Creating...
+                        Creando...
                       </>
                     ) : (
                       <>
                         <Plus className="w-4 h-4" />
-                        Save
+                        Guardar
                       </>
                     )}
                   </button>

@@ -20,7 +20,7 @@ import {
 import { signOutAction } from '@/app/actions/auth-actions'
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'BOSS', 'EMPLOYEE'] },
+  { name: 'Panel', href: '/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'BOSS', 'EMPLOYEE'] },
   { name: 'Inventario', href: '/dashboard/inventory', icon: Package, roles: ['ADMIN', 'BOSS', 'EMPLOYEE'] },
   { name: 'Importaciones', href: '/dashboard/imports', icon: Truck, roles: ['ADMIN', 'BOSS'] },
   { name: 'Clientes', href: '/dashboard/customers', icon: Users, roles: ['ADMIN', 'BOSS', 'EMPLOYEE'] },
@@ -30,9 +30,9 @@ const navigation = [
 ]
 
 const adminNavigation = [
-  { name: 'User Management', href: '/dashboard/users', icon: UserCog, roles: ['ADMIN'] },
-  { name: 'System Settings', href: '/dashboard/settings', icon: Settings, roles: ['ADMIN'] },
-  { name: 'Security Logs', href: '/dashboard/logs', icon: ShieldAlert, roles: ['ADMIN'] },
+  { name: 'Gestión de Usuarios', href: '/dashboard/users', icon: UserCog, roles: ['ADMIN'] },
+  { name: 'Configuración del Sistema', href: '/dashboard/settings', icon: Settings, roles: ['ADMIN'] },
+  { name: 'Registros de Seguridad', href: '/dashboard/logs', icon: ShieldAlert, roles: ['ADMIN'] },
 ]
 
 interface SidebarProps {
@@ -88,7 +88,7 @@ export function Sidebar({ userRole = 'EMPLOYEE' }: SidebarProps) {
         {adminNavigation.some(item => item.roles.includes(userRole)) && (
           <div className="mt-6 pt-4 border-t border-white/5">
             <span className="px-4 text-[10px] font-bold uppercase tracking-widest text-purple-400/60 mb-2 block">
-              System Admin
+              Administración del Sistema
             </span>
             {adminNavigation.map((item) => {
               if (!item.roles.includes(userRole)) return null

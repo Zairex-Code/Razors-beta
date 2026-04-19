@@ -64,7 +64,7 @@ export function FileUploader({
 
   const uploadFile = useCallback(async (file: File) => {
     if (file.size > maxSize) {
-      const errorMsg = `File size exceeds ${maxSize / 1024 / 1024}MB limit`
+      const errorMsg = `El tamaño del archivo excede el límite de ${maxSize / 1024 / 1024}MB`
       setError(errorMsg)
       onUploadError?.(errorMsg)
       return
@@ -103,7 +103,7 @@ export function FileUploader({
       setUploadedFile(uploadedFileData)
       onUploadComplete?.(uploadedFileData)
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Upload failed'
+      const errorMsg = err instanceof Error ? err.message : 'Error al subir'
       setError(errorMsg)
       onUploadError?.(errorMsg)
     } finally {
@@ -186,7 +186,7 @@ export function FileUploader({
         {isUploading ? (
           <>
             <Loader2 className="w-10 h-10 text-primary animate-spin" />
-            <p className="text-sm text-gray-400">Uploading...</p>
+            <p className="text-sm text-gray-400">Subiendo...</p>
           </>
         ) : (
           <>
@@ -197,9 +197,9 @@ export function FileUploader({
               <Upload className="w-6 h-6" />
             </div>
             <div className="text-center">
-              <p className="text-sm font-medium text-white">Drag & Drop or Click to Upload</p>
+              <p className="text-sm font-medium text-white">Arrastrar y soltar o hacer clic para subir</p>
               <p className="text-xs text-gray-500 mt-1">
-                Max {(maxSize / 1024 / 1024).toFixed(0)}MB
+                Máx {(maxSize / 1024 / 1024).toFixed(0)}MB
               </p>
             </div>
           </>

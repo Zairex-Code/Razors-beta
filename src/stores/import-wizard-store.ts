@@ -12,11 +12,13 @@ export interface ImportProduct {
 export interface ImportCost {
   id: string
   category: 'PROVIDER' | 'SHIPPING' | 'CUSTOMS' | 'MOBILITY'
+  date: string
   description: string
   amount: number
   currency: 'USD' | 'PEN'
   exchangeRate: number | null
   voucherUrl: string | null
+  fileName: string | null
 }
 
 export interface ImportDocument {
@@ -36,6 +38,8 @@ export interface ImportDraft {
   internalCosts: ImportCost[]
   extraCosts: ImportCost[]
   documents: ImportDocument[]
+  delivered: boolean
+  expandedCostId: string | null
 }
 
 interface ImportWizardState {
@@ -52,6 +56,8 @@ interface ImportWizardState {
   updateCost: (id: string, type: 'internal' | 'extra', data: Partial<ImportCost>) => void
   addDocument: (doc: Omit<ImportDocument, 'id'>) => void
   removeDocument: (id: string) => void
+  setDelivered: (delivered: boolean) => void
+  setExpandedCostId: (id: string | null) => void
   resetDraft: () => void
 }
 
@@ -69,6 +75,8 @@ export const useImportWizardStore = create<ImportWizardState>((set, get) => ({
       internalCosts: [],
       extraCosts: [],
       documents: [],
+      delivered: false,
+      expandedCostId: null,
     }
   }),
 
@@ -143,6 +151,18 @@ export const useImportWizardStore = create<ImportWizardState>((set, get) => ({
   removeDocument: (id) => set((state) => ({
     draft: state.draft
       ? { ...state.draft, documents: state.draft.documents.filter(d => d.id !== id) }
+      : null
+  })),
+
+  setDelivered: (delivered) => set((state) => ({
+    draft: state.draft
+      ? { ...state.draft, delivered }
+      : null
+  })),
+
+  setExpandedCostId: (id) => set((state) => ({
+    draft: state.draft
+      ? { ...state.draft, expandedCostId: id }
       : null
   })),
 

@@ -1,76 +1,75 @@
 'use client'
 
 import {
-  BarChart,
-  Bar,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
   PieChart,
   Pie,
   Cell,
-  LineChart,
-  Line,
 } from 'recharts'
 
-interface TopProductsChartProps {
-  data: Array<{ name: string; quantity: number }>
+interface SalesComparisonChartProps {
+  data: Array<{
+    month: string
+    sales: number
+    previousPeriod: number
+  }>
 }
 
-export function TopProductsChart({ data }: TopProductsChartProps) {
+export function SalesComparisonChart({ data }: SalesComparisonChartProps) {
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data} layout="vertical">
-        <CartesianGrid strokeDasharray="3 3" stroke="#00f7ff" opacity={0.1} />
-        <XAxis type="number" stroke="#00f7ff" />
-        <YAxis dataKey="name" type="category" stroke="#00f7ff" width={100} />
+      <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+        <defs>
+          <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#00f7ff" stopOpacity={0.4} />
+            <stop offset="95%" stopColor="#00f7ff" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff" opacity={0.05} vertical={false} />
+        <XAxis
+          dataKey="month"
+          stroke="#00f7ff"
+          fontSize={12}
+          tickLine={false}
+          axisLine={{ stroke: '#00f7ff', strokeOpacity: 0.3 }}
+        />
+        <YAxis
+          stroke="#00f7ff"
+          fontSize={12}
+          tickLine={false}
+          axisLine={false}
+          tickFormatter={(value) => `S/ ${value.toLocaleString()}`}
+        />
         <Tooltip
           contentStyle={{
-            backgroundColor: 'rgba(0,0,0,0.8)',
+            backgroundColor: 'rgba(10,10,10,0.95)',
             border: '1px solid #00f7ff',
-            borderRadius: '8px',
+            borderRadius: '12px',
+            padding: '12px',
+            boxShadow: '0 0 20px rgba(0,247,255,0.2)',
           }}
+          labelStyle={{ color: '#00f7ff', fontWeight: 'bold', marginBottom: '8px' }}
+          itemStyle={{ color: '#00f7ff' }}
         />
-        <Bar dataKey="quantity" fill="#00f7ff" radius={[0, 4, 4, 0]} />
-      </BarChart>
-    </ResponsiveContainer>
-  )
-}
-
-interface SalesSummaryChartProps {
-  paid: number
-  pending: number
-}
-
-export function SalesSummaryChart({ paid, pending }: SalesSummaryChartProps) {
-  return (
-    <ResponsiveContainer width="100%" height="100%">
-      <PieChart>
-        <Pie
-          data={[
-            { name: 'Pagadas', value: paid },
-            { name: 'Pendientes', value: pending },
-          ]}
-          cx="50%"
-          cy="50%"
-          innerRadius={60}
-          outerRadius={100}
-          paddingAngle={5}
-          dataKey="value"
-        >
-          <Cell fill="#00f7ff" />
-          <Cell fill="#00d4e0" />
-        </Pie>
-        <Tooltip
-          contentStyle={{
-            backgroundColor: 'rgba(0,0,0,0.8)',
-            border: '1px solid #00f7ff',
-            borderRadius: '8px',
-          }}
+        <Area
+          type="monotone"
+          dataKey="sales"
+          stroke="#00f7ff"
+          strokeWidth={2}
+          fillOpacity={1}
+          fill="url(#colorSales)"
         />
-      </PieChart>
+      </AreaChart>
     </ResponsiveContainer>
   )
 }
