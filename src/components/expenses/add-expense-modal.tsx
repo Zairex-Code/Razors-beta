@@ -5,6 +5,13 @@ import { motion } from 'motion/react'
 import { X, Receipt, Upload, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { createExpense } from '@/app/actions/expense-actions'
 import { uploadFileToStorage } from '@/lib/storage'
 
@@ -118,17 +125,18 @@ export function AddExpenseModal({ onClose, onSuccess }: AddExpenseModalProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Categoría</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full bg-gray-950 text-white border border-gray-800 rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500 appearance-none cursor-pointer text-sm"
-                >
-                  {CATEGORIES.map((cat) => (
-                    <option key={cat.value} value={cat.value} className="bg-gray-950 text-white">
-                      {cat.label}
-                    </option>
-                  ))}
-                </select>
+                <Select name="category" value={category} onValueChange={setCategory}>
+                  <SelectTrigger className="w-full bg-black/50 border border-gray-800 rounded-xl py-3 px-4 text-white focus:ring-1 focus:ring-cyan-500 outline-none">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-950 border-gray-800 text-white shadow-xl">
+                    {CATEGORIES.map((cat) => (
+                      <SelectItem key={cat.value} value={cat.value} className="focus:bg-cyan-900/30 focus:text-cyan-100">
+                        {cat.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Fecha</label>
@@ -168,14 +176,15 @@ export function AddExpenseModal({ onClose, onSuccess }: AddExpenseModalProps) {
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Estado</label>
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  className="w-full glass-input rounded-xl py-3 px-4 text-sm text-foreground appearance-none cursor-pointer"
-                >
-                  <option value="PENDING">Pendiente</option>
-                  <option value="PAID">Pagado</option>
-                </select>
+                <Select name="status" value={status} onValueChange={setStatus}>
+                  <SelectTrigger className="w-full bg-black/50 border border-gray-800 rounded-xl py-3 px-4 text-white focus:ring-1 focus:ring-cyan-500 outline-none">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-950 border-gray-800 text-white shadow-xl">
+                    <SelectItem value="PENDING" className="focus:bg-cyan-900/30 focus:text-cyan-100">Pendiente</SelectItem>
+                    <SelectItem value="PAID" className="focus:bg-cyan-900/30 focus:text-cyan-100">Pagado</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
