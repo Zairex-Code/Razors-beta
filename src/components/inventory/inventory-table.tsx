@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useOptimistic } from 'react'
 import { cn } from '@/lib/utils'
 import {
   Search,
   Package,
   Plus,
-  ChevronDown,
   Pencil,
   Trash2,
 } from 'lucide-react'
@@ -32,11 +31,17 @@ interface InventoryItem {
   }>
 }
 
-interface InventoryTableProps {
-  products: InventoryItem[]
+interface Location {
+  id: string
+  name: string
 }
 
-export function InventoryTable({ products }: InventoryTableProps) {
+interface InventoryTableProps {
+  products: InventoryItem[]
+  locations: Location[]
+}
+
+export function InventoryTable({ products, locations }: InventoryTableProps) {
   const [search, setSearch] = useState('')
   const [expandedProductId, setExpandedProductId] = useState<string | null>(null)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
@@ -44,7 +49,12 @@ export function InventoryTable({ products }: InventoryTableProps) {
   const [productToEdit, setProductToEdit] = useState<InventoryItem | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  const filteredProducts = products.filter(
+  const [optimisticProducts, addOptimisticProduct] = useOptimistic(
+    products,
+    (state, newProduct: InventoryItem) => [...state, newProduct]
+  )
+
+  const filteredProducts = optimisticProducts.filter(
     (product) =>
       product.name.toLowerCase().includes(search.toLowerCase()) ||
       product.sku.toLowerCase().includes(search.toLowerCase()) ||
@@ -53,6 +63,11 @@ export function InventoryTable({ products }: InventoryTableProps) {
 
   const getTotalStock = (product: InventoryItem) => {
     return product.inventory.reduce((sum, inv) => sum + inv.stock, 0)
+  }
+
+  const getStockByLocation = (product: InventoryItem, locationId: string) => {
+    const inv = product.inventory.find(i => i.location.id === locationId)
+    return inv?.stock ?? 0
   }
 
   const handleEdit = (product: InventoryItem) => {
@@ -107,6 +122,48 @@ export function InventoryTable({ products }: InventoryTableProps) {
           })
         }
       })
+    })
+  }
+
+  const handleCreated = (newProduct: { id: string, name: string, sku: string, category: string }) => {
+    const optimisticProduct: InventoryItem = {
+      id: newProduct.id,
+      sku: newProduct.sku,
+      name: newProduct.name,
+      category: newProduct.category,
+      pricePen: 0,
+      inventory: locations.map(loc => ({ id: '', stock: 0, location: loc }))
+    }
+    addOptimisticProduct(optimisticProduct)
+    setIsAddModalOpen(false)
+    Swal.fire({
+      title: 'Creado',
+      text: `Producto ${newProduct.name} creado exitosamente.`,
+      icon: 'success',
+      background: '#0a0a0a',
+      color: '#ffffff',
+      confirmButtonColor: '#00f7ff',
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 2000,
+    })
+  }
+
+  const handleUpdated = (updatedProduct: InventoryItem) => {
+    setEditModalOpen(false)
+    setProductToEdit(null)
+    Swal.fire({
+      title: 'Actualizado',
+      text: `Producto ${updatedProduct.name} actualizado exitosamente.`,
+      icon: 'success',
+      background: '#0a0a0a',
+      color: '#ffffff',
+      confirmButtonColor: '#00f7ff',
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 2000,
     })
   }
 
@@ -196,26 +253,44 @@ export function InventoryTable({ products }: InventoryTableProps) {
                 </button>
 
                 {isExpanded && (
-                  <div className="glass-panel bg-black/40 border-primary/20 rounded-2xl p-8 ml-6 border-l-4 border-l-primary/60 shadow-2xl space-y-6">
+                  <div className="w-full glass-panel bg-black/40 border-primary/20 rounded-2xl p-8 border-l-4 border-l-primary/60 shadow-2xl space-y-6">
                     <div className="flex flex-col lg:flex-row gap-10">
                       <div className="space-y-4 flex-1">
                         <h5 className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">
                           Stock por Ubicación
                         </h5>
-                        <div className="flex flex-wrap gap-4">
-                          {product.inventory.map((inv) => (
-                            <div
-                              key={inv.id}
-                              className="glass-card bg-foreground/[0.03] border-border/20 px-5 py-3 rounded-xl"
-                            >
-                              <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest">
-                                {inv.location.name}
-                              </span>
-                              <span className="text-lg font-black text-foreground block">
-                                {inv.stock} unidades
-                              </span>
-                            </div>
-                          ))}
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {locations.map((loc) => {
+                            const stock = getStockByLocation(product, loc.id)
+                            const isCritical = stock > 0 && stock < 10
+                            const isZero = stock === 0
+                            return (
+                              <div
+                                key={loc.id}
+                                className={cn(
+                                  "glass-card border px-5 py-3 rounded-xl",
+                                  isZero ? "bg-foreground/[0.02] border-border/20 opacity-60" : "bg-foreground/[0.03] border-border/20",
+                                  isCritical && "border-rose-500/50 bg-rose-500/5"
+                                )}
+                              >
+                                <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest">
+                                  {loc.name}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  <span className={cn(
+                                    "text-lg font-black block",
+                                    isZero ? "text-foreground/40" : "text-foreground"
+                                  )}>
+                                    {stock}
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground">unidades</span>
+                                  {isCritical && (
+                                    <span className="ml-auto text-[8px] font-bold text-rose-400 uppercase tracking-wider">Crítico</span>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })}
                         </div>
                       </div>
 
@@ -284,7 +359,8 @@ export function InventoryTable({ products }: InventoryTableProps) {
         isOpen={isAddModalOpen}
         mode="create"
         onClose={() => setIsAddModalOpen(false)}
-        onSaved={() => {}}
+        onCreated={handleCreated}
+        onUpdated={() => {}}
       />
 
       <ProductModal
@@ -295,7 +371,8 @@ export function InventoryTable({ products }: InventoryTableProps) {
           setEditModalOpen(false)
           setProductToEdit(null)
         }}
-        onSaved={() => {}}
+        onCreated={() => {}}
+        onUpdated={handleUpdated}
       />
     </div>
   )

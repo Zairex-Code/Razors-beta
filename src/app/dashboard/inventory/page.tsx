@@ -1,10 +1,14 @@
 import { getProducts } from '@/app/actions/product-actions'
+import { getLocations } from '@/app/actions/location-actions'
 import { InventoryTable } from '@/components/inventory/inventory-table'
 import Link from 'next/link'
 import { ArrowLeftRight } from 'lucide-react'
 
 export default async function InventoryPage() {
-  const products = await getProducts()
+  const [products, locations] = await Promise.all([
+    getProducts(),
+    getLocations()
+  ])
 
   return (
     <div className="p-8 space-y-6">
@@ -24,7 +28,7 @@ export default async function InventoryPage() {
         </Link>
       </div>
 
-      <InventoryTable products={products} />
+      <InventoryTable products={products} locations={locations} />
     </div>
   )
 }
