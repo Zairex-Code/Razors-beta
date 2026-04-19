@@ -14,6 +14,9 @@ interface Sale {
   date: Date | string
   status: 'PAID' | 'PENDING' | 'VOID'
   totalAmount: number
+  paymentMethod: string
+  isDelivery: boolean
+  deliveryCost: number
   customer: {
     id: string
     name: string

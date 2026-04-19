@@ -37,6 +37,9 @@ interface Sale {
   date: Date | string
   status: 'PAID' | 'PENDING' | 'VOID'
   totalAmount: number
+  paymentMethod: string
+  isDelivery: boolean
+  deliveryCost: number
   customer: {
     id: string
     name: string
@@ -255,6 +258,29 @@ export function SalesTable({ sales }: SalesTableProps) {
                                   Vendido por <span className="font-bold text-foreground">{sale.user.name}</span>
                                 </p>
                               </div>
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={cn(
+                                    "text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg border",
+                                    sale.paymentMethod === 'YAPE'
+                                      ? "bg-purple-500/10 border-purple-500/20 text-purple-400"
+                                      : sale.paymentMethod === 'PLIN'
+                                      ? "bg-cyan-500/10 border-cyan-500/20 text-cyan-400"
+                                      : sale.paymentMethod === 'TRANSFERENCIA'
+                                      ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
+                                      : sale.paymentMethod === 'TARJETA'
+                                      ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                                      : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                                  )}
+                                >
+                                  {sale.paymentMethod}
+                                </span>
+                                {sale.isDelivery && (
+                                  <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg border bg-orange-500/10 border-orange-500/20 text-orange-400">
+                                    Delivery
+                                  </span>
+                                )}
+                              </div>
                               {discounted && (
                                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20">
                                   <Percent size={14} className="text-rose-400" />
@@ -327,7 +353,7 @@ export function SalesTable({ sales }: SalesTableProps) {
                                         Subtotal
                                       </td>
                                       <td className="px-4 py-3 text-right font-medium">
-                                        S/ {(sale.totalAmount / 1.18).toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                                        S/ {((sale.totalAmount - sale.deliveryCost) / 1.18).toLocaleString('es-PE', { minimumFractionDigits: 2 })}
                                       </td>
                                     </tr>
                                     <tr className="bg-foreground/[0.01]">
@@ -335,9 +361,19 @@ export function SalesTable({ sales }: SalesTableProps) {
                                         IGV (18%)
                                       </td>
                                       <td className="px-4 py-3 text-right font-medium">
-                                        S/ {(sale.totalAmount - sale.totalAmount / 1.18).toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                                        S/ {(sale.totalAmount - sale.deliveryCost - (sale.totalAmount - sale.deliveryCost) / 1.18).toLocaleString('es-PE', { minimumFractionDigits: 2 })}
                                       </td>
                                     </tr>
+                                    {sale.isDelivery && (
+                                      <tr className="bg-foreground/[0.01]">
+                                        <td colSpan={5} className="px-4 py-3 text-right font-bold text-orange-400 uppercase tracking-widest">
+                                          Costo de Envío
+                                        </td>
+                                        <td className="px-4 py-3 text-right font-medium text-orange-400">
+                                          S/ {sale.deliveryCost.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                                        </td>
+                                      </tr>
+                                    )}
                                     <tr className="bg-primary/5">
                                       <td colSpan={5} className="px-4 py-3 text-right font-black text-primary uppercase tracking-widest">
                                         Total

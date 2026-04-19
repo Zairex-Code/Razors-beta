@@ -97,18 +97,21 @@ model ImportCost {
 }
 
 model Sale {
-  id            String     @id @default(uuid())
-  invoiceNumber String     @unique
-  date          DateTime   @default(now())
-  status        SaleStatus @default(PAID)
-  totalAmount   Float
-  userId        String
-  customerId    String
-  locationId    String
-  customer      Customer   @relation(fields: [customerId], references: [id])
-  location      Location   @relation(fields: [locationId], references: [id])
-  user          User       @relation(fields: [userId], references: [id])
-  items         SaleItem[]
+  id             String     @id @default(uuid())
+  invoiceNumber  String     @unique
+  date           DateTime   @default(now())
+  status         SaleStatus @default(PAID)
+  totalAmount    Float
+  paymentMethod  String     @default("EFECTIVO")
+  isDelivery     Boolean    @default(false)
+  deliveryCost   Float      @default(0)
+  userId         String
+  customerId     String
+  locationId     String
+  customer       Customer   @relation(fields: [customerId], references: [id])
+  location       Location   @relation(fields: [locationId], references: [id])
+  user           User       @relation(fields: [userId], references: [id])
+  items          SaleItem[]
 }
 
 model SaleItem {

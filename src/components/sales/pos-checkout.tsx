@@ -74,7 +74,7 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
   const [newCustomerPhone, setNewCustomerPhone] = useState('')
   const [isCreatingCustomer, setIsCreatingCustomer] = useState(false)
 
-  const { cart, addToCart, removeFromCart, updateQuantity, updateUnitPrice, clearCart, setCustomer } = usePOSStore()
+  const { cart, addToCart, removeFromCart, updateQuantity, updateUnitPrice, clearCart, setCustomer, paymentMethod, setPaymentMethod, isDelivery, setIsDelivery, deliveryCost, setDeliveryCost } = usePOSStore()
 
   const categories = useMemo(() => {
     const cats = new Set(products.map(p => p.category))
@@ -101,8 +101,10 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
   }, [customers, customerSearchQuery])
 
   const cartTotal = cart.reduce((sum, item) => sum + item.subtotal, 0)
-  const igv = cartTotal / 1.18
-  const subtotal = cartTotal - igv
+  const subtotalBeforeIgv = cartTotal
+  const igv = subtotalBeforeIgv / 1.18
+  const subtotal = subtotalBeforeIgv - igv
+  const grandTotal = subtotalBeforeIgv + igv + deliveryCost
   const hasDiscountItems = cart.filter(i => i.hasDiscount)
 
   const handleAddToCart = (product: Product) => {
@@ -173,10 +175,13 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
           discountPct: item.basePrice > 0 ? ((item.basePrice - item.unitPrice) / item.basePrice) * 100 : 0,
           subtotal: item.subtotal
         })),
-        totalAmount: cartTotal,
-        invoiceNumber
+        totalAmount: grandTotal,
+        invoiceNumber,
+        paymentMethod,
+        isDelivery,
+        deliveryCost
       })
-      setSaleComplete({ invoiceNumber, total: cartTotal, status: saleStatus })
+      setSaleComplete({ invoiceNumber, total: grandTotal, status: saleStatus })
       clearCart()
     } catch (error) {
       console.error('Error processing sale:', error)
@@ -477,6 +482,23 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
           </div>
         </div>
 
+        <div className="px-4 py-3 border-b border-gray-800 shrink-0">
+          <div className="flex items-center justify-between p-3 rounded-xl bg-gray-800/30 border border-gray-700/50">
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Método de pago</span>
+            <select
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value)}
+              className="bg-transparent text-xs font-bold text-gray-300 border border-gray-700/50 rounded-lg px-3 py-1.5 appearance-none cursor-pointer focus:outline-none focus:border-primary/50"
+            >
+              <option value="EFECTIVO" className="bg-gray-900">EFECTIVO</option>
+              <option value="YAPE" className="bg-gray-900">YAPE</option>
+              <option value="PLIN" className="bg-gray-900">PLIN</option>
+              <option value="TRANSFERENCIA" className="bg-gray-900">TRANSFERENCIA</option>
+              <option value="TARJETA" className="bg-gray-900">TARJETA</option>
+            </select>
+          </div>
+        </div>
+
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {cart.length === 0 ? (
             <div className="text-center py-12 text-gray-600">
@@ -558,6 +580,38 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
           )}
         </div>
 
+        <div className="px-4 py-3 border-t border-gray-800 shrink-0 space-y-3">
+          <div className="flex items-center justify-between p-3 rounded-xl bg-gray-800/30 border border-gray-700/50">
+            <div className="flex items-center gap-2">
+              <Package size={14} className="text-gray-400" />
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Delivery</span>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isDelivery}
+                onChange={(e) => setIsDelivery(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-700/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600/50 peer-checked:border peer-checked:border-purple-500/50" />
+            </label>
+          </div>
+          {isDelivery && (
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-xs font-bold">S/</span>
+              <input
+                type="number"
+                min={0}
+                step={0.5}
+                value={deliveryCost || ''}
+                onChange={(e) => setDeliveryCost(parseFloat(e.target.value) || 0)}
+                placeholder="0.00"
+                className="w-full bg-gray-900/50 border border-gray-700/50 rounded-xl py-2.5 pl-10 pr-4 text-sm font-bold text-white placeholder-gray-600 focus:border-purple-500/50 focus:outline-none transition-all"
+              />
+            </div>
+          )}
+        </div>
+
         <div className="p-6 border-t border-gray-800 space-y-4 bg-black/40 shrink-0">
           {hasDiscountItems.length > 0 && (
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-rose-500/10 border border-rose-500/20">
@@ -577,9 +631,15 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
               <span>IGV (18%)</span>
               <span>S/ {igv.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
             </div>
+            {isDelivery && (
+              <div className="flex justify-between text-xs text-purple-400">
+                <span>Delivery</span>
+                <span>S/ {deliveryCost.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
+              </div>
+            )}
             <div className="flex justify-between text-lg font-black text-gray-100 pt-2 border-t border-gray-800">
               <span>Total</span>
-              <span className="text-primary bg-transparent">S/ {cartTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
+              <span className="text-primary bg-transparent">S/ {grandTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
             </div>
           </div>
 
@@ -596,7 +656,7 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
               ) : (
                 <>
                   <CreditCard size={16} className="mr-2" />
-                  {saleStatus === 'PAID' ? 'Cobrar' : 'Registrar'} S/ {cartTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                  {saleStatus === 'PAID' ? 'Cobrar' : 'Registrar'} S/ {grandTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
                 </>
               )}
             </Button>

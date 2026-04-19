@@ -75,6 +75,9 @@ export async function createSale(data: {
   }>
   totalAmount: number
   invoiceNumber: string
+  paymentMethod: string
+  isDelivery: boolean
+  deliveryCost: number
 }) {
   await requireAuth()
 
@@ -86,6 +89,9 @@ export async function createSale(data: {
       locationId: data.locationId,
       totalAmount: data.totalAmount,
       status: data.status,
+      paymentMethod: data.paymentMethod,
+      isDelivery: data.isDelivery,
+      deliveryCost: data.deliveryCost,
       items: {
         create: data.items.map(item => ({
           productId: item.productId,

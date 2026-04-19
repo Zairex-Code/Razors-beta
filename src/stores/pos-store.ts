@@ -16,12 +16,18 @@ interface POSState {
   cart: CartItem[]
   customerId: string | null
   locationId: string
+  paymentMethod: string
+  isDelivery: boolean
+  deliveryCost: number
   addToCart: (item: Omit<CartItem, 'subtotal' | 'hasDiscount'>) => void
   removeFromCart: (productId: string) => void
   updateQuantity: (productId: string, quantity: number) => void
   updateUnitPrice: (productId: string, newPrice: number) => void
   setCustomer: (customerId: string | null) => void
   setLocation: (locationId: string) => void
+  setPaymentMethod: (method: string) => void
+  setIsDelivery: (isDelivery: boolean) => void
+  setDeliveryCost: (cost: number) => void
   clearCart: () => void
   getTotal: () => number
 }
@@ -32,6 +38,9 @@ export const usePOSStore = create<POSState>()(
       cart: [],
       customerId: null,
       locationId: '',
+      paymentMethod: 'EFECTIVO',
+      isDelivery: false,
+      deliveryCost: 0,
 
       addToCart: (item) => set((state) => {
         const existing = state.cart.find(i => i.productId === item.productId)
@@ -74,8 +83,11 @@ export const usePOSStore = create<POSState>()(
 
       setCustomer: (customerId) => set({ customerId }),
       setLocation: (locationId) => set({ locationId }),
+      setPaymentMethod: (method) => set({ paymentMethod: method }),
+      setIsDelivery: (isDelivery) => set({ isDelivery, deliveryCost: isDelivery ? get().deliveryCost : 0 }),
+      setDeliveryCost: (cost) => set({ deliveryCost: cost }),
 
-      clearCart: () => set({ cart: [], customerId: null }),
+      clearCart: () => set({ cart: [], customerId: null, paymentMethod: 'EFECTIVO', isDelivery: false, deliveryCost: 0 }),
 
       getTotal: () => {
         const { cart } = get()
