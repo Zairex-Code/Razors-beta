@@ -3,7 +3,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 
 const PUBLIC_ROUTES = ['/login']
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -44,14 +44,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  const { data: { user: userData } } = await supabase.auth.getUser()
-  if (userData) {
-    const userRole = userData.user_metadata?.role
+  const userRole = user.user_metadata?.role
 
-    const employeeRestrictedRoutes = ['/dashboard/reports', '/dashboard/imports', '/dashboard/expenses']
-    if (userRole === 'EMPLOYEE' && employeeRestrictedRoutes.some(route => pathname.startsWith(route))) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
+  const employeeRestrictedRoutes = ['/dashboard/reports', '/dashboard/imports', '/dashboard/expenses']
+  if (userRole === 'EMPLOYEE' && employeeRestrictedRoutes.some(route => pathname.startsWith(route))) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
   return response
