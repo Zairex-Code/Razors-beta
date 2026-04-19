@@ -55,6 +55,9 @@ model Customer {
   docNumber String  @unique
   name      String
   email     String?
+  phone     String?
+  address   String?
+  isActive  Boolean @default(true)
   sales     Sale[]
 }
 

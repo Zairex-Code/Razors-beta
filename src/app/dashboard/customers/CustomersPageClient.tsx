@@ -1,10 +1,37 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { Users, Plus } from 'lucide-react'
+import Swal from 'sweetalert2'
 import { CustomersTable } from '@/components/customers/customers-table'
-import { AddCustomerModal } from '@/components/customers/add-customer-modal'
+import { CustomerModal } from '@/components/ui/customer-modal'
 import { Button } from '@/components/ui/button'
+import { deleteCustomer } from '@/app/actions/customer-actions'
+
+interface SaleItem {
+  id: string
+  quantity: number
+  unitPrice: number
+  subtotal: number
+  product: {
+    id: string
+    name: string
+    sku: string
+  }
+}
+
+interface Sale {
+  id: string
+  invoiceNumber: string
+  date: Date | string
+  status: 'PAID' | 'PENDING' | 'VOID'
+  totalAmount: number
+  items: SaleItem[]
+  location: {
+    id: string
+    name: string
+  }
+}
 
 interface Customer {
   id: string
@@ -12,29 +39,10 @@ interface Customer {
   docNumber: string
   name: string
   email: string | null
+  phone: string | null
+  address: string | null
   totalPurchases: number
-  sales: Array<{
-    id: string
-    invoiceNumber: string
-    date: Date | string
-    status: 'PAID' | 'PENDING' | 'VOID'
-    totalAmount: number
-    items: Array<{
-      id: string
-      quantity: number
-      unitPrice: number
-      subtotal: number
-      product: {
-        id: string
-        name: string
-        sku: string
-      }
-    }>
-    location: {
-      id: string
-      name: string
-    }
-  }>
+  sales: Sale[]
 }
 
 interface CustomersPageClientProps {
@@ -44,10 +52,82 @@ interface CustomersPageClientProps {
 export default function CustomersPageClient({ initialCustomers }: CustomersPageClientProps) {
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null)
+  const [isPending, startTransition] = useTransition()
 
-  const handleCustomerCreated = () => {
+  const handleCustomerCreated = (customer: Customer) => {
     setIsAddModalOpen(false)
-    window.location.reload()
+    setCustomers(prev => [...prev, customer])
+    Swal.fire({
+      title: 'Creado',
+      text: `Cliente ${customer.name} agregado exitosamente.`,
+      icon: 'success',
+      background: '#0a0a0a',
+      color: '#ffffff',
+      confirmButtonColor: '#00f7ff',
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 2000,
+    })
+  }
+
+  const handleCustomerUpdated = (updated: Customer) => {
+    setEditModalOpen(false)
+    setCustomerToEdit(null)
+    setCustomers(prev => prev.map(c => c.id === updated.id ? { ...c, ...updated } : c))
+    Swal.fire({
+      title: 'Actualizado',
+      text: `Cliente ${updated.name} actualizado exitosamente.`,
+      icon: 'success',
+      background: '#0a0a0a',
+      color: '#ffffff',
+      confirmButtonColor: '#00f7ff',
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 2000,
+    })
+  }
+
+  const handleDeleteCustomer = (customerId: string) => {
+    startTransition(async () => {
+      try {
+        const result = await deleteCustomer(customerId)
+        const customer = customers.find(c => c.id === customerId)
+        setCustomers(prev => prev.filter(c => c.id !== customerId))
+        Swal.fire({
+          title: result.softDeleted ? 'Desactivado' : 'Eliminado',
+          text: result.softDeleted
+            ? `${customer?.name} tenía ventas asociadas y fue desactivado.`
+            : `${customer?.name} ha sido eliminado.`,
+          icon: 'success',
+          background: '#0a0a0a',
+          color: '#ffffff',
+          confirmButtonColor: '#00f7ff',
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 2500,
+        })
+      } catch (error) {
+        console.error('Error deleting customer:', error)
+        Swal.fire({
+          title: 'Error',
+          text: 'No se pudo eliminar el cliente.',
+          icon: 'error',
+          background: '#0a0a0a',
+          color: '#ffffff',
+          confirmButtonColor: '#00f7ff',
+        })
+      }
+    })
+  }
+
+  const handleEditCustomer = (customer: Customer) => {
+    setCustomerToEdit(customer)
+    setEditModalOpen(true)
   }
 
   return (
@@ -72,14 +152,31 @@ export default function CustomersPageClient({ initialCustomers }: CustomersPageC
         </Button>
       </div>
 
-      <CustomersTable customers={customers} />
+      <CustomersTable
+        customers={customers}
+        onEditCustomer={handleEditCustomer}
+        onDeleteCustomer={handleDeleteCustomer}
+      />
 
-      {isAddModalOpen && (
-        <AddCustomerModal
-          onClose={() => setIsAddModalOpen(false)}
-          onSuccess={handleCustomerCreated}
-        />
-      )}
+      <CustomerModal
+        isOpen={isAddModalOpen}
+        mode="create"
+        onClose={() => setIsAddModalOpen(false)}
+        onCreated={handleCustomerCreated}
+        onUpdated={() => {}}
+      />
+
+      <CustomerModal
+        isOpen={editModalOpen}
+        mode="edit"
+        customer={customerToEdit || undefined}
+        onClose={() => {
+          setEditModalOpen(false)
+          setCustomerToEdit(null)
+        }}
+        onCreated={() => {}}
+        onUpdated={handleCustomerUpdated}
+      />
     </div>
   )
 }

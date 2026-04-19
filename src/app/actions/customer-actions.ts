@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 
 export async function getCustomers() {
   return prisma.customer.findMany({
+    where: { isActive: true },
     orderBy: { name: 'asc' },
     include: {
       sales: {
@@ -60,7 +61,8 @@ export async function searchCustomers(query: string) {
       OR: [
         { name: { contains: query, mode: 'insensitive' } },
         { docNumber: { contains: query, mode: 'insensitive' } },
-        { email: { contains: query, mode: 'insensitive' } }
+        { email: { contains: query, mode: 'insensitive' } },
+        { phone: { contains: query, mode: 'insensitive' } }
       ]
     },
     orderBy: { name: 'asc' },
@@ -73,13 +75,17 @@ export async function createCustomer(data: {
   docNumber: string
   name: string
   email?: string
+  phone?: string
+  address?: string
 }) {
   const customer = await prisma.customer.create({
     data: {
       docType: data.docType,
       docNumber: data.docNumber,
       name: data.name,
-      email: data.email
+      email: data.email,
+      phone: data.phone,
+      address: data.address
     }
   })
 
@@ -92,6 +98,8 @@ export async function updateCustomer(id: string, data: {
   docNumber?: string
   name?: string
   email?: string
+  phone?: string
+  address?: string
 }) {
   const customer = await prisma.customer.update({
     where: { id },
@@ -103,15 +111,32 @@ export async function updateCustomer(id: string, data: {
 }
 
 export async function deleteCustomer(id: string) {
+  const customer = await prisma.customer.findUnique({
+    where: { id },
+    include: { sales: true }
+  })
+
+  if (!customer) {
+    throw new Error('Cliente no encontrado')
+  }
+
+  if (customer.sales.length > 0) {
+    await prisma.customer.update({
+      where: { id },
+      data: { isActive: false }
+    })
+    return { success: true, softDeleted: true }
+  }
+
   await prisma.customer.delete({
     where: { id }
   })
-
-  revalidatePath('/dashboard/customers')
+  return { success: true, softDeleted: false }
 }
 
 export async function getCustomerStats() {
   const customers = await prisma.customer.findMany({
+    where: { isActive: true },
     include: {
       sales: {
         where: { status: 'PAID' },

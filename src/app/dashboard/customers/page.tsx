@@ -10,6 +10,8 @@ export default async function CustomersPage() {
     docNumber: customer.docNumber,
     name: customer.name,
     email: customer.email,
+    phone: customer.phone,
+    address: customer.address,
     totalPurchases: customer.sales
       .filter(sale => sale.status === 'PAID')
       .reduce((acc, sale) => acc + sale.totalAmount, 0),

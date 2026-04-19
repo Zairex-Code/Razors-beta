@@ -7,12 +7,14 @@ import { es } from 'date-fns/locale'
 import {
   Search,
   User,
-  Plus,
   Download,
   MapPin,
   Phone,
   ChevronDown,
+  Pencil,
+  Trash2,
 } from 'lucide-react'
+import Swal from 'sweetalert2'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { deleteCustomer } from '@/app/actions/customer-actions'
@@ -48,15 +50,19 @@ interface Customer {
   docNumber: string
   name: string
   email: string | null
+  phone: string | null
+  address: string | null
   totalPurchases: number
   sales: Sale[]
 }
 
 interface CustomersTableProps {
   customers: Customer[]
+  onEditCustomer: (customer: Customer) => void
+  onDeleteCustomer: (customerId: string) => void
 }
 
-export function CustomersTable({ customers }: CustomersTableProps) {
+export function CustomersTable({ customers, onEditCustomer, onDeleteCustomer }: CustomersTableProps) {
   const [search, setSearch] = useState('')
   const [expandedCustomerId, setExpandedCustomerId] = useState<string | null>(null)
 
@@ -64,18 +70,31 @@ export function CustomersTable({ customers }: CustomersTableProps) {
     (customer) =>
       customer.name.toLowerCase().includes(search.toLowerCase()) ||
       customer.docNumber.includes(search) ||
-      customer.email?.toLowerCase().includes(search.toLowerCase())
+      customer.email?.toLowerCase().includes(search.toLowerCase()) ||
+      customer.phone?.includes(search)
   )
 
-  const handleDelete = async (customerId: string) => {
-    if (!confirm('¿Estás seguro de eliminar este cliente?')) return
-
-    try {
-      await deleteCustomer(customerId)
-      window.location.reload()
-    } catch (error) {
-      console.error('Error deleting customer:', error)
-    }
+  const handleDelete = (customer: Customer) => {
+    Swal.fire({
+      title: '¿Eliminar Cliente?',
+      text: customer.sales.length > 0
+        ? `${customer.name} tiene ${customer.sales.length} venta(s) asociada(s). Se desactivará en lugar de eliminarse.`
+        : `¿Estás seguro de eliminar a ${customer.name}?`,
+      icon: 'warning',
+      background: '#0a0a0a',
+      color: '#ffffff',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      customClass: {
+        popup: 'glass-panel',
+      }
+    }).then((result) => {
+      if (!result.isConfirmed) return
+      onDeleteCustomer(customer.id)
+    })
   }
 
   return (
@@ -85,17 +104,12 @@ export function CustomersTable({ customers }: CustomersTableProps) {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/30 group-focus-within:text-primary transition-colors" size={20} />
           <Input
             type="text"
-            placeholder="Buscar por nombre, documento o email..."
+            placeholder="Buscar por nombre, documento, email o teléfono..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full glass-input rounded-2xl py-3.5 pl-12 pr-4 text-sm"
           />
         </div>
-
-        <Button className="flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm tracking-tight neon-glow hover:scale-[1.02] active:scale-[0.98] transition-all">
-          <Plus size={18} />
-          Agregar Cliente
-        </Button>
       </div>
 
       <div className="glass-panel rounded-[2rem] p-8 relative overflow-hidden">
@@ -103,11 +117,12 @@ export function CustomersTable({ customers }: CustomersTableProps) {
         <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-blue-500/5 blur-[100px] rounded-full -ml-32 -mb-32 pointer-events-none" />
 
         <div className="relative z-10 overflow-x-auto">
-          <div className="min-w-[800px] space-y-4">
+          <div className="min-w-[900px] space-y-4">
             <div className="grid grid-cols-12 px-8 py-4 text-muted-foreground text-[10px] uppercase tracking-[0.25em] font-bold">
               <div className="col-span-2">Tipo / Número</div>
-              <div className="col-span-4">Nombre / Razón Social</div>
-              <div className="col-span-3">Email</div>
+              <div className="col-span-3">Nombre / Razón Social</div>
+              <div className="col-span-2">Teléfono</div>
+              <div className="col-span-2">Email</div>
               <div className="col-span-2 text-right">Total Compras</div>
               <div className="col-span-1"></div>
             </div>
@@ -134,11 +149,18 @@ export function CustomersTable({ customers }: CustomersTableProps) {
                       <span className="font-mono text-xs text-muted-foreground">{customer.docNumber}</span>
                     </div>
 
-                    <div className="col-span-4 relative z-10">
+                    <div className="col-span-3 relative z-10">
                       <span className="font-bold text-sm tracking-tight">{customer.name}</span>
                     </div>
 
-                    <div className="col-span-3 relative z-10">
+                    <div className="col-span-2 relative z-10">
+                      <span className="text-sm text-foreground/60 flex items-center gap-2">
+                        <Phone size={12} className="text-primary/40" />
+                        {customer.phone || '-'}
+                      </span>
+                    </div>
+
+                    <div className="col-span-2 relative z-10">
                       <span className="text-sm text-foreground/60">{customer.email || '-'}</span>
                     </div>
 
@@ -160,33 +182,47 @@ export function CustomersTable({ customers }: CustomersTableProps) {
                   </button>
 
                   {isExpanded && (
-                    <div className="glass-panel bg-black/40 border-primary/20 rounded-2xl p-8 ml-6 border-l-4 border-l-primary/60 shadow-2xl space-y-8">
+                    <div className="w-full glass-panel bg-black/40 border-primary/20 rounded-2xl p-8 border-l-4 border-l-primary/60 shadow-2xl space-y-8">
                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                         <div className="space-y-4">
                           <h5 className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Datos de Contacto</h5>
                           <div className="space-y-3">
-                            <div className="flex items-center gap-3 text-sm text-foreground/70">
-                              <Phone size={14} className="text-primary/60" />
-                              <span>+51 987 654 321</span>
-                            </div>
-                            <div className="flex items-center gap-3 text-sm text-foreground/70">
-                              <MapPin size={14} className="text-primary/60" />
-                              <span>Av. Javier Prado Este 123, San Isidro, Lima</span>
-                            </div>
+                            {customer.phone && (
+                              <div className="flex items-center gap-3 text-sm text-foreground/70">
+                                <Phone size={14} className="text-primary/60" />
+                                <span>{customer.phone}</span>
+                              </div>
+                            )}
+                            {customer.address && (
+                              <div className="flex items-center gap-3 text-sm text-foreground/70">
+                                <MapPin size={14} className="text-primary/60" />
+                                <span>{customer.address}</span>
+                              </div>
+                            )}
+                            {!customer.phone && !customer.address && (
+                              <p className="text-sm text-foreground/40 italic">Sin datos de contacto</p>
+                            )}
                           </div>
 
                           <div className="pt-4 border-t border-border/20">
                             <h5 className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] mb-3">Acciones</h5>
                             <div className="flex flex-wrap gap-2">
-                              <Button variant="outline" size="sm" className="rounded-xl text-xs">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => onEditCustomer(customer)}
+                                className="rounded-xl text-xs flex items-center gap-2"
+                              >
+                                <Pencil size={12} />
                                 Editar Cliente
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleDelete(customer.id)}
-                                className="rounded-xl text-xs text-rose-500 hover:text-rose-400"
+                                onClick={() => handleDelete(customer)}
+                                className="rounded-xl text-xs text-rose-500 hover:text-rose-400 flex items-center gap-2"
                               >
+                                <Trash2 size={12} />
                                 Eliminar
                               </Button>
                             </div>
