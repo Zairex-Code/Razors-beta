@@ -393,11 +393,11 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
                   </div>
 
                   <div className="flex items-end justify-between mt-3 pt-3 border-t border-gray-800/50">
-                    <span className="text-xl font-black text-primary neon-glow">
+                    <span className="text-xl font-black text-primary bg-transparent">
                       S/ {product.pricePen.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
                     </span>
                     <span className={cn(
-                      "text-[10px] font-bold uppercase tracking-wider",
+                      "text-[10px] font-bold uppercase tracking-wider bg-transparent",
                       stock > 10 ? "text-emerald-400" : stock > 0 ? "text-amber-400" : "text-rose-400"
                     )}>
                       {stock} und
@@ -446,6 +446,36 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
             </button>
           </div>
         )}
+
+        <div className="px-4 py-3 border-b border-gray-800 shrink-0">
+          <div className="flex items-center justify-between p-3 rounded-xl bg-gray-800/30 border border-gray-700/50">
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Estado de pago</span>
+            <div className="flex gap-1">
+              <button
+                type="button"
+                onClick={() => setSaleStatus('PAID')}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  saleStatus === 'PAID'
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                Pagada
+              </button>
+              <button
+                type="button"
+                onClick={() => setSaleStatus('PENDING')}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  saleStatus === 'PENDING'
+                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                    : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                Pendiente
+              </button>
+            </div>
+          </div>
+        </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {cart.length === 0 ? (
@@ -539,34 +569,6 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
           )}
 
           <div className="space-y-2">
-            <div className="flex items-center justify-between p-3 rounded-xl bg-gray-800/30 border border-gray-700/50">
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Estado de pago</span>
-              <div className="flex gap-1">
-                <button
-                  type="button"
-                  onClick={() => setSaleStatus('PAID')}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    saleStatus === 'PAID'
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                      : 'text-gray-500 hover:text-gray-300'
-                  }`}
-                >
-                  Pagada
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSaleStatus('PENDING')}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    saleStatus === 'PENDING'
-                      ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                      : 'text-gray-500 hover:text-gray-300'
-                  }`}
-                >
-                  Pendiente
-                </button>
-              </div>
-            </div>
-
             <div className="flex justify-between text-xs text-gray-500">
               <span>Subtotal</span>
               <span>S/ {subtotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
