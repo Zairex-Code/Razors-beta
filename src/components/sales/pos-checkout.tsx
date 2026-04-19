@@ -14,8 +14,10 @@ import {
   Package,
   X,
   CheckCircle,
-  Receipt,
+  Pencil,
+  Percent,
 } from 'lucide-react'
+import Swal from 'sweetalert2'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { usePOSStore, type CartItem } from '@/stores/pos-store'
@@ -55,8 +57,10 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
   const [selectedCustomer, setSelectedCustomer] = useState<typeof customers[0] | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [saleComplete, setSaleComplete] = useState<{ invoiceNumber: string; total: number } | null>(null)
+  const [editingPriceItem, setEditingPriceItem] = useState<CartItem | null>(null)
+  const [newPriceInput, setNewPriceInput] = useState('')
 
-  const { cart, addToCart, removeFromCart, updateQuantity, clearCart, setCustomer } = usePOSStore()
+  const { cart, addToCart, removeFromCart, updateQuantity, updateUnitPrice, clearCart, setCustomer } = usePOSStore()
 
   const categories = useMemo(() => {
     const cats = new Set(products.map(p => p.category))
@@ -75,6 +79,7 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
   const cartTotal = cart.reduce((sum, item) => sum + item.subtotal, 0)
   const igv = cartTotal / 1.18
   const subtotal = cartTotal - igv
+  const hasDiscountItems = cart.filter(i => i.hasDiscount)
 
   const handleAddToCart = (product: Product) => {
     const existing = cart.find(i => i.productId === product.id)
@@ -86,7 +91,8 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
         sku: product.sku,
         name: product.name,
         quantity: 1,
-        unitPrice: product.pricePen
+        unitPrice: product.pricePen,
+        basePrice: product.pricePen
       })
     }
   }
@@ -95,6 +101,30 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
     setSelectedCustomer(customer)
     setCustomer(customer.id)
     setShowCustomerSelect(false)
+  }
+
+  const handleOpenPriceEdit = (item: CartItem) => {
+    setEditingPriceItem(item)
+    setNewPriceInput(item.unitPrice.toFixed(2))
+  }
+
+  const handleSavePriceEdit = () => {
+    if (!editingPriceItem) return
+    const price = parseFloat(newPriceInput)
+    if (isNaN(price) || price < 0) {
+      Swal.fire({
+        title: 'Precio inválido',
+        text: 'Ingresa un precio válido mayor o igual a 0.',
+        icon: 'error',
+        background: '#0a0a0a',
+        color: '#ffffff',
+        confirmButtonColor: '#00f7ff',
+      })
+      return
+    }
+    updateUnitPrice(editingPriceItem.productId, price)
+    setEditingPriceItem(null)
+    setNewPriceInput('')
   }
 
   const handleCheckout = async () => {
@@ -111,6 +141,9 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
           productId: item.productId,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
+          basePrice: item.basePrice,
+          hasDiscount: item.hasDiscount,
+          discountPct: item.basePrice > 0 ? ((item.basePrice - item.unitPrice) / item.basePrice) * 100 : 0,
           subtotal: item.subtotal
         })),
         totalAmount: cartTotal,
@@ -120,7 +153,14 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
       clearCart()
     } catch (error) {
       console.error('Error processing sale:', error)
-      alert('Error al procesar la venta')
+      Swal.fire({
+        title: 'Error',
+        text: 'No se pudo procesar la venta.',
+        icon: 'error',
+        background: '#0a0a0a',
+        color: '#ffffff',
+        confirmButtonColor: '#00f7ff',
+      })
     } finally {
       setIsProcessing(false)
     }
@@ -157,6 +197,12 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
                   S/ {saleComplete.total.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
                 </span>
               </div>
+              {hasDiscountItems.length > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-rose-400 text-sm">Rebajas aplicadas</span>
+                  <span className="text-rose-400 font-bold">{hasDiscountItems.length} producto(s)</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -301,18 +347,38 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
             </div>
           ) : (
             cart.map(item => (
-              <div key={item.productId} className="glass-panel rounded-xl p-4 bg-foreground/[0.02]">
+              <div key={item.productId} className={cn(
+                "glass-panel rounded-xl p-4 bg-foreground/[0.02]",
+                item.hasDiscount && "border-rose-500/30 bg-rose-500/5"
+              )}>
                 <div className="flex justify-between items-start mb-2">
                   <div className="flex-1">
-                    <p className="font-bold text-xs line-clamp-1">{item.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-bold text-xs line-clamp-1">{item.name}</p>
+                      {item.hasDiscount && (
+                        <span className="flex items-center gap-1 text-[8px] font-bold text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                          <Percent size={8} />
+                          -{((item.basePrice - item.unitPrice) / item.basePrice * 100).toFixed(0)}%
+                        </span>
+                      )}
+                    </div>
                     <p className="text-[10px] text-muted-foreground">{item.sku}</p>
                   </div>
-                  <button
-                    onClick={() => removeFromCart(item.productId)}
-                    className="p-1 hover:bg-rose-500/10 rounded text-muted-foreground hover:text-rose-500 transition-all"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleOpenPriceEdit(item)}
+                      className="p-1 hover:bg-primary/10 rounded text-muted-foreground hover:text-primary transition-all"
+                      title="Editar precio"
+                    >
+                      <Pencil size={12} />
+                    </button>
+                    <button
+                      onClick={() => removeFromCart(item.productId)}
+                      className="p-1 hover:bg-rose-500/10 rounded text-muted-foreground hover:text-rose-500 transition-all"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
@@ -331,8 +397,22 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
                     </button>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-muted-foreground">S/ {item.unitPrice.toFixed(2)} c/u</p>
-                    <p className="font-black text-primary">S/ {item.subtotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
+                    {item.hasDiscount ? (
+                      <>
+                        <p className="text-[10px] text-rose-400 line-through">
+                          S/ {item.basePrice.toFixed(2)} c/u
+                        </p>
+                        <p className="font-black text-rose-400">S/ {item.unitPrice.toFixed(2)} c/u</p>
+                      </>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">S/ {item.unitPrice.toFixed(2)} c/u</p>
+                    )}
+                    <p className={cn(
+                      "font-black",
+                      item.hasDiscount ? "text-rose-400" : "text-primary"
+                    )}>
+                      S/ {item.subtotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -341,6 +421,14 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
         </div>
 
         <div className="p-6 border-t border-border/30 space-y-4 bg-background/40">
+          {hasDiscountItems.length > 0 && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-rose-500/10 border border-rose-500/20">
+              <Percent size={14} className="text-rose-400" />
+              <span className="text-[10px] font-bold text-rose-400">
+                {hasDiscountItems.length} producto(s) con precio rebajado
+              </span>
+            </div>
+          )}
           <div className="space-y-2">
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>Subtotal</span>
@@ -437,6 +525,77 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
                   </div>
                 </button>
               ))}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {editingPriceItem && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 bg-black/80 backdrop-blur-md z-[150] flex items-center justify-center p-4"
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            className="glass-panel rounded-[2rem] w-full max-w-md p-8 border-primary/30"
+          >
+            <div className="text-center mb-6">
+              <h3 className="text-xl font-bold mb-1">Editar Precio</h3>
+              <p className="text-sm text-muted-foreground">{editingPriceItem.name}</p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex justify-between items-center p-4 rounded-xl bg-foreground/5">
+                <span className="text-xs text-muted-foreground">Precio catálogo</span>
+                <span className="font-bold line-through text-muted-foreground">
+                  S/ {editingPriceItem.basePrice.toFixed(2)}
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">
+                  Nuevo Precio (PEN)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">S/</span>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    value={newPriceInput}
+                    onChange={(e) => setNewPriceInput(e.target.value)}
+                    className="w-full glass-input rounded-xl py-3 pl-10 pr-4 text-sm font-bold"
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              {parseFloat(newPriceInput) < editingPriceItem.basePrice && parseFloat(newPriceInput) > 0 && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20">
+                  <Percent size={14} className="text-rose-400" />
+                  <span className="text-xs font-bold text-rose-400">
+                    Rebaja de {((editingPriceItem.basePrice - parseFloat(newPriceInput)) / editingPriceItem.basePrice * 100).toFixed(1)}%
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 mt-8">
+              <Button
+                onClick={() => setEditingPriceItem(null)}
+                variant="ghost"
+                className="flex-1 py-3 rounded-xl text-sm font-bold text-foreground/40 hover:text-foreground"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleSavePriceEdit}
+                className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground font-bold neon-glow"
+              >
+                Guardar Precio
+              </Button>
             </div>
           </motion.div>
         </motion.div>

@@ -7,6 +7,8 @@ export interface CartItem {
   name: string
   quantity: number
   unitPrice: number
+  basePrice: number
+  hasDiscount: boolean
   subtotal: number
 }
 
@@ -14,9 +16,10 @@ interface POSState {
   cart: CartItem[]
   customerId: string | null
   locationId: string
-  addToCart: (item: Omit<CartItem, 'subtotal'>) => void
+  addToCart: (item: Omit<CartItem, 'subtotal' | 'hasDiscount'>) => void
   removeFromCart: (productId: string) => void
   updateQuantity: (productId: string, quantity: number) => void
+  updateUnitPrice: (productId: string, newPrice: number) => void
   setCustomer: (customerId: string | null) => void
   setLocation: (locationId: string) => void
   clearCart: () => void
@@ -40,7 +43,8 @@ export const usePOSStore = create<POSState>()(
           )
           return { cart: updated }
         }
-        return { cart: [...state.cart, { ...item, subtotal: item.quantity * item.unitPrice }] }
+        const subtotal = item.quantity * item.unitPrice
+        return { cart: [...state.cart, { ...item, subtotal, hasDiscount: item.unitPrice < item.basePrice }] }
       }),
 
       removeFromCart: (productId) => set((state) => ({
@@ -51,6 +55,19 @@ export const usePOSStore = create<POSState>()(
         cart: state.cart.map(i =>
           i.productId === productId
             ? { ...i, quantity, subtotal: quantity * i.unitPrice }
+            : i
+        )
+      })),
+
+      updateUnitPrice: (productId, newPrice) => set((state) => ({
+        cart: state.cart.map(i =>
+          i.productId === productId
+            ? {
+                ...i,
+                unitPrice: newPrice,
+                hasDiscount: newPrice < i.basePrice,
+                subtotal: i.quantity * newPrice
+              }
             : i
         )
       })),

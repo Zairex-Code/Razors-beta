@@ -6,7 +6,7 @@ import SalesPageClient from './SalesPageClient'
 export default async function SalesPage({
   searchParams
 }: {
-  searchParams: Promise<{ page?: string; status?: string }>
+  searchParams: Promise<{ page?: string; status?: string; discounted?: string }>
 }) {
   const user = await getUserWithRole()
   if (!user) return null
@@ -14,9 +14,10 @@ export default async function SalesPage({
   const params = await searchParams
   const page = parseInt(params.page || '1')
   const status = params.status as 'PAID' | 'PENDING' | 'VOID' | undefined
+  const hasDiscount = params.discounted === 'true' ? true : undefined
 
   const [salesData, products, customers, locations] = await Promise.all([
-    getSales({ page, status }),
+    getSales({ page, status, hasDiscount }),
     prisma.product.findMany({
       include: {
         inventory: true

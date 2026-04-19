@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Activity, ShoppingCart, Receipt, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Activity, ShoppingCart, Receipt, ChevronLeft, ChevronRight, Percent } from 'lucide-react'
 import { SalesTable } from '@/components/sales/sales-table'
 import { POSCheckout } from '@/components/sales/pos-checkout'
 import { Button } from '@/components/ui/button'
@@ -32,6 +32,9 @@ interface Sale {
     id: string
     quantity: number
     unitPrice: number
+    basePrice: number
+    hasDiscount: boolean
+    discountPct: number
     subtotal: number
     product: {
       id: string
@@ -88,6 +91,8 @@ export default function SalesPageClient({
 }: SalesPageClientProps) {
   const [activeTab, setActiveTab] = useState<'history' | 'pos'>('history')
   const [isPending, startTransition] = useTransition()
+  const [statusFilter, setStatusFilter] = useState<'PAID' | 'PENDING' | 'VOID' | undefined>(undefined)
+  const [showDiscounted, setShowDiscounted] = useState(false)
   const router = useRouter()
 
   const formattedSales = sales.map(sale => ({
@@ -99,6 +104,30 @@ export default function SalesPageClient({
     startTransition(() => {
       const params = new URLSearchParams()
       params.set('page', newPage.toString())
+      if (statusFilter) params.set('status', statusFilter)
+      if (showDiscounted) params.set('discounted', 'true')
+      router.push(`/dashboard/sales?${params.toString()}`)
+    })
+  }
+
+  const handleStatusFilterChange = (status: 'PAID' | 'PENDING' | 'VOID' | undefined) => {
+    setStatusFilter(status)
+    setShowDiscounted(false)
+    startTransition(() => {
+      const params = new URLSearchParams()
+      params.set('page', '1')
+      if (status) params.set('status', status)
+      router.push(`/dashboard/sales?${params.toString()}`)
+    })
+  }
+
+  const handleDiscountedFilter = () => {
+    setShowDiscounted(!showDiscounted)
+    setStatusFilter(undefined)
+    startTransition(() => {
+      const params = new URLSearchParams()
+      params.set('page', '1')
+      if (!showDiscounted) params.set('discounted', 'true')
       router.push(`/dashboard/sales?${params.toString()}`)
     })
   }
@@ -144,7 +173,67 @@ export default function SalesPageClient({
 
       {activeTab === 'history' ? (
         <>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={() => handleStatusFilterChange(undefined)}
+              variant={statusFilter === undefined && !showDiscounted ? 'default' : 'ghost'}
+              size="sm"
+              className={cn(
+                "rounded-xl text-xs font-bold transition-all",
+                statusFilter === undefined && !showDiscounted ? "bg-primary neon-glow" : ""
+              )}
+            >
+              Todas
+            </Button>
+            <Button
+              onClick={() => handleStatusFilterChange('PAID')}
+              variant={statusFilter === 'PAID' ? 'default' : 'ghost'}
+              size="sm"
+              className={cn(
+                "rounded-xl text-xs font-bold transition-all",
+                statusFilter === 'PAID' ? "bg-emerald-500 neon-glow" : "text-emerald-400"
+              )}
+            >
+              Pagadas
+            </Button>
+            <Button
+              onClick={() => handleStatusFilterChange('PENDING')}
+              variant={statusFilter === 'PENDING' ? 'default' : 'ghost'}
+              size="sm"
+              className={cn(
+                "rounded-xl text-xs font-bold transition-all",
+                statusFilter === 'PENDING' ? "bg-amber-500 neon-glow" : "text-amber-400"
+              )}
+            >
+              Pendientes
+            </Button>
+            <Button
+              onClick={() => handleStatusFilterChange('VOID')}
+              variant={statusFilter === 'VOID' ? 'default' : 'ghost'}
+              size="sm"
+              className={cn(
+                "rounded-xl text-xs font-bold transition-all",
+                statusFilter === 'VOID' ? "bg-rose-500 neon-glow" : "text-rose-400"
+              )}
+            >
+              Anuladas
+            </Button>
+            <Button
+              onClick={handleDiscountedFilter}
+              variant={showDiscounted ? 'default' : 'ghost'}
+              size="sm"
+              className={cn(
+                "rounded-xl text-xs font-bold transition-all gap-1.5",
+                showDiscounted ? "bg-rose-500 neon-glow" : "text-rose-400 hover:text-rose-300"
+              )}
+            >
+              <Percent size={12} />
+              Con Rebaja
+            </Button>
+          </div>
+
           <SalesTable sales={formattedSales} />
+
           {pagination.totalPages > 1 && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-500">

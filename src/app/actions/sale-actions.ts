@@ -6,15 +6,20 @@ import { SaleStatus } from '@prisma/client'
 
 export async function getSales(options: {
   status?: SaleStatus
+  hasDiscount?: boolean
   page?: number
   perPage?: number
 } = {}) {
-  const { status, page = 1, perPage = 20 } = options
+  const { status, hasDiscount, page = 1, perPage = 20 } = options
   const skip = (page - 1) * perPage
+
+  const whereClause: any = {}
+  if (status) whereClause.status = status
+  if (hasDiscount !== undefined) whereClause.items = { some: { hasDiscount } }
 
   const [sales, total] = await Promise.all([
     prisma.sale.findMany({
-      where: status ? { status } : undefined,
+      where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
       include: {
         customer: true,
         user: { select: { id: true, name: true } },
@@ -26,7 +31,7 @@ export async function getSales(options: {
       take: perPage
     }),
     prisma.sale.count({
-      where: status ? { status } : undefined
+      where: Object.keys(whereClause).length > 0 ? whereClause : undefined
     })
   ])
 
@@ -61,6 +66,9 @@ export async function createSale(data: {
     productId: string
     quantity: number
     unitPrice: number
+    basePrice: number
+    hasDiscount: boolean
+    discountPct: number
     subtotal: number
   }>
   totalAmount: number
@@ -79,6 +87,9 @@ export async function createSale(data: {
           productId: item.productId,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
+          basePrice: item.basePrice,
+          hasDiscount: item.hasDiscount,
+          discountPct: item.discountPct,
           subtotal: item.subtotal
         }))
       }
