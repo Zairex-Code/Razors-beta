@@ -205,14 +205,15 @@ export function ExpensesTable({ expenses }: ExpensesTableProps) {
                               }}
                               onClick={(e) => e.stopPropagation()}
                               className={cn(
-                                "text-[9px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border",
+                                "text-sm font-medium px-3 py-1.5 rounded-lg border cursor-pointer transition-colors outline-none focus:border-cyan-500 bg-gray-950 text-white",
                                 expense.status === 'PAID'
-                                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                                  : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                                  ? "border-green-500/30 text-green-400"
+                                  : "border-amber-500/30 text-amber-400"
                               )}
+                              style={{ backgroundColor: 'rgb(3 3 3 / 1)' }}
                             >
-                              <option value="PAID">Pagado</option>
-                              <option value="PENDING">Pendiente</option>
+                              <option value="PAID" className="bg-gray-950 text-white">Pagado</option>
+                              <option value="PENDING" className="bg-gray-950 text-white">Pendiente</option>
                             </select>
                           </div>
                           <div className="px-6 py-4 col-span-1 text-right">
@@ -236,48 +237,47 @@ export function ExpensesTable({ expenses }: ExpensesTableProps) {
                             </button>
                           </div>
                         </div>
-                      </div>
 
-                      {isExpanded && (
-                        <div className="px-8 pb-6 pt-2">
-                          <div className="glass-panel rounded-b-2xl border-x border-b border-primary/40 bg-primary/[0.02] p-6">
-                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                              <div className="space-y-4">
-                                <div>
-                                  <p className="text-[10px] font-bold uppercase tracking-widest text-primary mb-1">Descripción Completa</p>
-                                  <p className="text-sm text-foreground/70">{expense.description}</p>
-                                </div>
-                                <div className="grid grid-cols-2 gap-6">
+                        {isExpanded && (
+                          <div className="px-8 pb-6 pt-2 w-full">
+                            <div className="glass-panel rounded-b-2xl border-x border-b border-primary/40 bg-primary/[0.02] p-6">
+                              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                                <div className="space-y-4">
                                   <div>
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Fecha</p>
-                                    <p className="text-sm font-medium">
-                                      {format(new Date(expense.date), 'dd MMMM yyyy', { locale: es })}
-                                    </p>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-primary mb-1">Descripción Completa</p>
+                                    <p className="text-sm text-foreground/70">{expense.description}</p>
                                   </div>
-                                  <div>
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Monto</p>
-                                    <p className="text-lg font-black text-primary">
-                                      S/ {expense.amountPen.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
-                                    </p>
+                                  <div className="grid grid-cols-2 gap-6">
+                                    <div>
+                                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Fecha</p>
+                                      <p className="text-sm font-medium">
+                                        {format(new Date(expense.date), 'dd MMMM yyyy', { locale: es })}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Monto</p>
+                                      <p className="text-lg font-black text-primary">
+                                        S/ {expense.amountPen.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                                      </p>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                              <div className="flex flex-col gap-3">
-                                {expense.voucherUrl ? (
-                                  <Button variant="outline" className="rounded-xl gap-2">
-                                    <Download size={14} />
-                                    Descargar Comprobante
-                                  </Button>
-                                ) : (
-                                  <p className="text-xs text-muted-foreground text-center py-2">
-                                    Sin comprobante adjunto
-                                  </p>
-                                )}
+                                <div className="flex flex-col gap-3">
+                                  {expense.voucherUrl ? (
+                                    <Button variant="outline" className="rounded-xl gap-2">
+                                      <Download size={14} />
+                                      Descargar Comprobante
+                                    </Button>
+                                  ) : (
+                                    <p className="text-xs text-muted-foreground text-center py-2">
+                                      Sin comprobante adjunto
+                                    </p>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      )}
+                        )}
                     </td>
                   </tr>
                 )
