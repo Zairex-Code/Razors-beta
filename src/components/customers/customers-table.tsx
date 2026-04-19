@@ -166,7 +166,7 @@ export function CustomersTable({ customers, onEditCustomer, onDeleteCustomer }: 
 
                     <div className="col-span-2 text-right relative z-10">
                       <span className="text-sm font-bold">
-                        S/ {customer.totalPurchases.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                        S/ {(customer.totalPurchases ?? 0).toLocaleString('es-PE', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
 
