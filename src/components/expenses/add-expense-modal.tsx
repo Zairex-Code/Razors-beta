@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { motion } from 'motion/react'
-import { X, Receipt, Upload } from 'lucide-react'
+import { X, Receipt, Upload, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { createExpense } from '@/app/actions/expense-actions'
+import { uploadFileToStorage } from '@/lib/storage'
 
 interface AddExpenseModalProps {
   onClose: () => void
@@ -28,19 +29,36 @@ export function AddExpenseModal({ onClose, onSuccess }: AddExpenseModalProps) {
   const [status, setStatus] = useState('PENDING')
   const [date, setDate] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setIsUploading(!!selectedFile)
+    setUploadProgress(selectedFile ? 'Preparando archivo...' : '')
     setError(null)
 
     try {
+      let voucherUrl: string | undefined
+
+      if (selectedFile) {
+        setUploadProgress('Subiendo comprobante...')
+        const blob = selectedFile
+        voucherUrl = await uploadFileToStorage('documents', 'expenses', blob, `expense_${Date.now()}_${selectedFile.name}`)
+      }
+
+      setUploadProgress('Guardando gasto...')
+
       await createExpense({
         category,
         description,
         amountPen: parseFloat(amount),
         status,
+        voucherUrl,
       })
       onSuccess()
     } catch (err) {
@@ -48,7 +66,20 @@ export function AddExpenseModal({ onClose, onSuccess }: AddExpenseModalProps) {
       console.error(err)
     } finally {
       setIsSubmitting(false)
+      setIsUploading(false)
+      setUploadProgress('')
     }
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setSelectedFile(file)
+    }
+  }
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click()
   }
 
   return (
@@ -94,7 +125,7 @@ export function AddExpenseModal({ onClose, onSuccess }: AddExpenseModalProps) {
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full glass-input rounded-xl py-3 px-4 text-sm bg-[#0a0a0a] text-white appearance-none"
+                  className="w-full glass-input rounded-xl py-3 px-4 text-sm text-foreground appearance-none cursor-pointer"
                 >
                   {CATEGORIES.map((cat) => (
                     <option key={cat.value} value={cat.value}>
@@ -144,7 +175,7 @@ export function AddExpenseModal({ onClose, onSuccess }: AddExpenseModalProps) {
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
-                  className="w-full glass-input rounded-xl py-3 px-4 text-sm bg-[#0a0a0a] text-white appearance-none"
+                  className="w-full glass-input rounded-xl py-3 px-4 text-sm text-foreground appearance-none cursor-pointer"
                 >
                   <option value="PENDING">Pendiente</option>
                   <option value="PAID">Pagado</option>
@@ -152,14 +183,49 @@ export function AddExpenseModal({ onClose, onSuccess }: AddExpenseModalProps) {
               </div>
             </div>
 
-            <div className="border-2 border-dashed border-border/30 rounded-2xl p-6 text-center">
-              <div className="w-12 h-12 rounded-full bg-foreground/5 flex items-center justify-center mx-auto mb-3">
-                <Upload size={20} className="text-muted-foreground" />
-              </div>
-              <p className="text-sm text-muted-foreground mb-1">Subir comprobante (opcional)</p>
-              <Button variant="outline" type="button" size="sm" className="rounded-xl text-xs">
-                Seleccionar Archivo
-              </Button>
+            <div
+              className="border-2 border-dashed border-border/30 rounded-2xl p-6 text-center hover:border-primary/30 transition-all cursor-pointer"
+              onClick={triggerFileInput}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                onChange={handleFileChange}
+              />
+              {selectedFile ? (
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <FileText size={20} className="text-primary" />
+                  </div>
+                  <p className="text-sm text-primary font-medium truncate max-w-full">{selectedFile.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSelectedFile(null)
+                      if (fileInputRef.current) fileInputRef.current.value = ''
+                    }}
+                    className="text-xs text-rose-400 hover:text-rose-300 transition-colors"
+                  >
+                    Quitar archivo
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="w-12 h-12 rounded-full bg-foreground/5 flex items-center justify-center mx-auto mb-3">
+                    <Upload size={20} className="text-muted-foreground" />
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-1">Subir comprobante (opcional)</p>
+                  <Button variant="outline" type="button" size="sm" className="rounded-xl text-xs" onClick={(e) => e.stopPropagation()}>
+                    Seleccionar Archivo
+                  </Button>
+                </>
+              )}
             </div>
 
             <div className="flex items-center justify-end gap-4 pt-4">
@@ -179,7 +245,7 @@ export function AddExpenseModal({ onClose, onSuccess }: AddExpenseModalProps) {
                 {isSubmitting ? (
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                    Creando...
+                    {isUploading ? (uploadProgress || 'Subiendo...') : 'Creando...'}
                   </div>
                 ) : (
                   'Registrar Gasto'
