@@ -67,7 +67,7 @@ export function Sidebar({ userRole = 'EMPLOYEE' }: SidebarProps) {
               key={item.name}
               href={item.href}
               className={cn(
-                "w-full flex items-center gap-3 py-3 px-4 rounded-xl transition-all duration-300 group relative cursor-pointer",
+                "w-full flex items-center gap-3 py-3 px-4 rounded-xl transition-all duration-300 group relative",
                 isActive
                   ? "bg-primary/10 text-primary neon-border"
                   : "text-white/50 hover:text-white hover:bg-white/5"
@@ -100,7 +100,7 @@ export function Sidebar({ userRole = 'EMPLOYEE' }: SidebarProps) {
                   key={item.name}
                   href={item.href}
                   className={cn(
-                    "w-full flex items-center gap-3 py-3 px-4 rounded-xl transition-all duration-300 group relative mb-1 cursor-pointer",
+                    "w-full flex items-center gap-3 py-3 px-4 rounded-xl transition-all duration-300 group relative mb-1",
                     isActive
                       ? "bg-purple-500/10 text-purple-400 border border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.1)]"
                       : "text-white/50 hover:text-white hover:bg-white/5"
@@ -124,7 +124,7 @@ export function Sidebar({ userRole = 'EMPLOYEE' }: SidebarProps) {
       <div className="p-3 border-t border-white/5 relative z-10">
         <button
           onClick={() => signOutAction()}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-all"
         >
           <LogOut size={20} />
           Cerrar Sesión

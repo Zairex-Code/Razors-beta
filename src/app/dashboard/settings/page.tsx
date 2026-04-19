@@ -164,14 +164,14 @@ export default function SettingsPage() {
           </div>
           <div className="space-y-2">
             <label className="text-xs font-bold uppercase tracking-widest text-gray-400">Currency</label>
-            <select className="w-full bg-black/50 border border-gray-800 rounded-xl py-3 px-4 text-white focus:border-purple-500 focus:outline-none transition-all cursor-pointer appearance-none">
+            <select className="w-full glass-input rounded-xl py-3 px-4 text-sm bg-[#0a0a0a] text-white appearance-none">
               <option>PEN (Sol Peruano)</option>
               <option>USD (US Dollar)</option>
             </select>
           </div>
           <div className="space-y-2">
             <label className="text-xs font-bold uppercase tracking-widest text-gray-400">Timezone</label>
-            <select className="w-full bg-black/50 border border-gray-800 rounded-xl py-3 px-4 text-white focus:border-purple-500 focus:outline-none transition-all cursor-pointer appearance-none">
+            <select className="w-full glass-input rounded-xl py-3 px-4 text-sm bg-[#0a0a0a] text-white appearance-none">
               <option>America/Lima (PET)</option>
             </select>
           </div>

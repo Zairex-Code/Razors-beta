@@ -114,7 +114,7 @@ export default function LogsPage() {
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="bg-black/50 border border-gray-800 rounded-lg py-2 px-3 text-sm text-white focus:border-purple-500 focus:outline-none cursor-pointer appearance-none"
+              className="glass-input rounded-lg py-2 px-3 text-sm bg-[#0a0a0a] text-white appearance-none"
             >
               <option value="ALL">All Events</option>
               <option value="LOGIN">Logins</option>

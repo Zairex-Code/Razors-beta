@@ -252,7 +252,7 @@ export function ImportsTable({ imports }: ImportsTableProps) {
                                 }}
                                 disabled={updatingId === imp.id}
                                 className={cn(
-                                  "text-[9px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border cursor-pointer",
+                                  "text-[9px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border bg-transparent",
                                   STATUS_CONFIG[imp.status as keyof typeof STATUS_CONFIG]?.color ?? STATUS_CONFIG.PLANNING.color
                                 )}
                               >

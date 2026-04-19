@@ -94,7 +94,7 @@ export function AddExpenseModal({ onClose, onSuccess }: AddExpenseModalProps) {
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full glass-input rounded-xl py-3 px-4 text-sm cursor-pointer"
+                  className="w-full glass-input rounded-xl py-3 px-4 text-sm bg-[#0a0a0a] text-white appearance-none"
                 >
                   {CATEGORIES.map((cat) => (
                     <option key={cat.value} value={cat.value}>
@@ -109,7 +109,7 @@ export function AddExpenseModal({ onClose, onSuccess }: AddExpenseModalProps) {
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="w-full glass-input rounded-xl py-3 px-4 text-sm cursor-pointer"
+                  className="w-full glass-input rounded-xl py-3 px-4 text-sm"
                   required
                 />
               </div>
@@ -144,7 +144,7 @@ export function AddExpenseModal({ onClose, onSuccess }: AddExpenseModalProps) {
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
-                  className="w-full glass-input rounded-xl py-3 px-4 text-sm cursor-pointer"
+                  className="w-full glass-input rounded-xl py-3 px-4 text-sm bg-[#0a0a0a] text-white appearance-none"
                 >
                   <option value="PENDING">Pendiente</option>
                   <option value="PAID">Pagado</option>

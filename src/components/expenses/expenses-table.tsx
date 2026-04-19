@@ -99,7 +99,7 @@ export function ExpensesTable({ expenses }: ExpensesTableProps) {
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="glass-input rounded-xl py-2.5 px-4 text-sm cursor-pointer"
+            className="glass-input rounded-xl py-2.5 px-4 text-sm bg-[#0a0a0a] text-white appearance-none"
           >
             <option value="ALL">Todas las categorías</option>
             {CATEGORIES.map((cat) => (
@@ -111,7 +111,7 @@ export function ExpensesTable({ expenses }: ExpensesTableProps) {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="glass-input rounded-xl py-2.5 px-4 text-sm cursor-pointer"
+            className="glass-input rounded-xl py-2.5 px-4 text-sm bg-[#0a0a0a] text-white appearance-none"
           >
             <option value="ALL">Todos los estados</option>
             <option value="PAID">Pagado</option>
@@ -168,7 +168,7 @@ export function ExpensesTable({ expenses }: ExpensesTableProps) {
                       <div
                         onClick={() => setExpandedExpenseId(isExpanded ? null : expense.id)}
                         className={cn(
-                          "group transition-all duration-300 cursor-pointer rounded-2xl",
+                          "group transition-all duration-300 rounded-2xl",
                           isExpanded
                             ? "bg-primary/5 border border-primary/40"
                             : "bg-foreground/[0.03] border border-transparent hover:border-primary/20"
@@ -205,7 +205,7 @@ export function ExpensesTable({ expenses }: ExpensesTableProps) {
                               }}
                               onClick={(e) => e.stopPropagation()}
                               className={cn(
-                                "text-[9px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border cursor-pointer",
+                                "text-[9px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border",
                                 expense.status === 'PAID'
                                   ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                                   : "bg-amber-500/10 text-amber-400 border-amber-500/20"

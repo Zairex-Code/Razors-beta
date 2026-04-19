@@ -191,7 +191,7 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="glass-input rounded-xl py-3 px-4 cursor-pointer"
+                className="glass-input rounded-xl py-3 px-4 bg-[#0a0a0a] text-white appearance-none"
               >
                 {categories.map(cat => (
                   <option key={cat} value={cat}>

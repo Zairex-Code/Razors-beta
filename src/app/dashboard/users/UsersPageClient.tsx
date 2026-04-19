@@ -117,7 +117,7 @@ export default function UsersPageClient({ initialUsers }: { initialUsers: User[]
                     value={user.role}
                     onChange={(e) => handleChangeRole(user.id, e.target.value as Role)}
                     disabled={isLoading === user.id}
-                    className={`px-3 py-1 rounded-full text-xs font-bold tracking-wider border ${getRoleBadgeStyles(user.role)} bg-transparent cursor-pointer`}
+                    className={`px-3 py-1 rounded-full text-xs font-bold tracking-wider border ${getRoleBadgeStyles(user.role)} bg-transparent`}
                   >
                     <option value="ADMIN">ADMIN</option>
                     <option value="BOSS">BOSS</option>
@@ -207,7 +207,7 @@ export default function UsersPageClient({ initialUsers }: { initialUsers: User[]
                   <select
                     value={newUser.role}
                     onChange={(e) => setNewUser({ ...newUser, role: e.target.value as Role })}
-                    className="w-full bg-black/50 border border-gray-800 rounded-xl py-3 px-4 text-white focus:border-purple-500 focus:outline-none transition-all cursor-pointer appearance-none"
+                    className="w-full glass-input rounded-xl py-3 px-4 text-sm bg-[#0a0a0a] text-white appearance-none"
                   >
                     <option value="EMPLOYEE">EMPLOYEE</option>
                     <option value="BOSS">BOSS</option>

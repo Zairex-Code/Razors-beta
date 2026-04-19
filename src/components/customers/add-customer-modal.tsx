@@ -84,7 +84,7 @@ export function AddCustomerModal({ onClose, onSuccess }: AddCustomerModalProps) 
                 <select
                   value={docType}
                   onChange={(e) => setDocType(e.target.value)}
-                  className="w-full glass-input rounded-xl py-3 px-4 text-sm cursor-pointer"
+                  className="w-full glass-input rounded-xl py-3 px-4 text-sm bg-[#0a0a0a] text-white appearance-none"
                 >
                   <option value="RUC">RUC</option>
                   <option value="DNI">DNI</option>

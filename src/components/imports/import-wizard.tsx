@@ -101,7 +101,7 @@ function NewProductModal({ isOpen, onClose, onCreated }: NewProductModalProps) {
             <h3 className="text-xl font-bold tracking-tight">Agregar Producto Nuevo</h3>
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-foreground/5 flex items-center justify-center text-foreground/40 hover:text-foreground hover:bg-foreground/10 transition-all cursor-pointer"
+              className="w-8 h-8 rounded-full bg-foreground/5 flex items-center justify-center text-foreground/40 hover:text-foreground hover:bg-foreground/10 transition-all"
             >
               <X size={16} />
             </button>
@@ -117,7 +117,7 @@ function NewProductModal({ isOpen, onClose, onCreated }: NewProductModalProps) {
                 value={sku}
                 onChange={(e) => setSku(e.target.value)}
                 placeholder="e.g. WH-CLP-SNR"
-                className="w-full glass-input rounded-xl py-3 px-4 text-sm cursor-pointer"
+                className="w-full glass-input rounded-xl py-3 px-4 text-sm"
               />
             </div>
 
@@ -128,7 +128,7 @@ function NewProductModal({ isOpen, onClose, onCreated }: NewProductModalProps) {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Nombre del producto"
-                className="w-full glass-input rounded-xl py-3 px-4 text-sm cursor-pointer"
+                className="w-full glass-input rounded-xl py-3 px-4 text-sm"
               />
             </div>
 
@@ -139,7 +139,7 @@ function NewProductModal({ isOpen, onClose, onCreated }: NewProductModalProps) {
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 placeholder="e.g. Tools, Blades, Accessories"
-                className="w-full glass-input rounded-xl py-3 px-4 text-sm cursor-pointer"
+                className="w-full glass-input rounded-xl py-3 px-4 text-sm"
               />
             </div>
 
@@ -154,7 +154,7 @@ function NewProductModal({ isOpen, onClose, onCreated }: NewProductModalProps) {
                   value={pricePen}
                   onChange={(e) => setPricePen(e.target.value)}
                   placeholder="0.00"
-                  className="w-full glass-input rounded-xl py-3 pl-10 pr-4 text-sm font-bold cursor-pointer"
+                  className="w-full glass-input rounded-xl py-3 pl-10 pr-4 text-sm font-bold"
                 />
               </div>
             </div>
@@ -163,14 +163,14 @@ function NewProductModal({ isOpen, onClose, onCreated }: NewProductModalProps) {
           <div className="flex items-center gap-3 pt-2">
             <button
               onClick={onClose}
-              className="flex-1 py-3 rounded-xl text-sm font-bold text-foreground/40 hover:text-foreground hover:bg-foreground/5 transition-all cursor-pointer"
+              className="flex-1 py-3 rounded-xl text-sm font-bold text-foreground/40 hover:text-foreground hover:bg-foreground/5 transition-all"
             >
               Cancelar
             </button>
             <button
               onClick={handleCreate}
               disabled={!sku || !name || !category || !pricePen || isCreating}
-              className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm tracking-tight neon-glow hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm tracking-tight neon-glow hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isCreating ? (
                 <>
@@ -263,7 +263,7 @@ function ProductCombobox({ value, onChange, products, disabledOptions = [] }: Pr
         }}
         onFocus={() => setIsOpen(true)}
         placeholder="Buscar producto..."
-        className="w-full glass-input rounded-xl py-2 px-3 text-sm cursor-pointer"
+        className="w-full glass-input rounded-xl py-2 px-3 text-sm"
       />
       <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
 
@@ -298,7 +298,7 @@ function ProductCombobox({ value, onChange, products, disabledOptions = [] }: Pr
                   <button
                     key={product.id}
                     onClick={() => handleSelect(product)}
-                    className="w-full px-3 py-2.5 text-left hover:bg-foreground/5 transition-colors cursor-pointer flex items-center justify-between gap-2"
+                    className="w-full px-3 py-2.5 text-left hover:bg-foreground/5 transition-colors flex items-center justify-between gap-2"
                   >
                     <div>
                       <p className="text-sm font-semibold">{product.name}</p>
@@ -403,7 +403,7 @@ export function ImportWizard({ onClose, onComplete, providers, products }: Impor
         className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center"
       >
         <div className="text-center">
-          <Button onClick={handleInit} className="px-8 py-4 rounded-2xl bg-primary text-primary-foreground font-bold neon-glow cursor-pointer">
+          <Button onClick={handleInit} className="px-8 py-4 rounded-2xl bg-primary text-primary-foreground font-bold neon-glow">
             Iniciar Nueva Importación
           </Button>
         </div>
@@ -435,7 +435,7 @@ export function ImportWizard({ onClose, onComplete, providers, products }: Impor
           </div>
           <button
             onClick={() => { resetDraft(); onClose() }}
-            className="w-10 h-10 rounded-full bg-foreground/5 flex items-center justify-center text-foreground/40 hover:text-foreground hover:bg-foreground/10 transition-all cursor-pointer"
+            className="w-10 h-10 rounded-full bg-foreground/5 flex items-center justify-center text-foreground/40 hover:text-foreground hover:bg-foreground/10 transition-all"
           >
             <X size={20} />
           </button>
@@ -501,7 +501,7 @@ export function ImportWizard({ onClose, onComplete, providers, products }: Impor
               <Button
                 onClick={handleBack}
                 variant="ghost"
-                className="px-8 py-4 rounded-2xl text-sm font-bold text-foreground/40 hover:text-foreground hover:bg-foreground/5 transition-all cursor-pointer"
+                className="px-8 py-4 rounded-2xl text-sm font-bold text-foreground/40 hover:text-foreground hover:bg-foreground/5 transition-all"
               >
                 <ChevronLeft size={18} className="mr-1" />
                 Atrás
@@ -510,7 +510,7 @@ export function ImportWizard({ onClose, onComplete, providers, products }: Impor
             {currentStep < 4 ? (
               <Button
                 onClick={handleNext}
-                className="px-12 py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-sm tracking-tight neon-glow hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 cursor-pointer"
+                className="px-12 py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-sm tracking-tight neon-glow hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2"
               >
                 Siguiente: Agregar Productos
                 <ChevronRight size={18} />
@@ -519,7 +519,7 @@ export function ImportWizard({ onClose, onComplete, providers, products }: Impor
               <Button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="px-12 py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-sm tracking-tight neon-glow hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 shadow-[0_0_30px_rgba(0,247,255,0.3)] cursor-pointer"
+                className="px-12 py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-sm tracking-tight neon-glow hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 shadow-[0_0_30px_rgba(0,247,255,0.3)]"
               >
                 {isSubmitting ? (
                   <>
@@ -567,7 +567,7 @@ function StepBasicInfo({ providers }: { providers: string[] }) {
               <select
                 value={draft.provider}
                 onChange={(e) => updateBasicInfo({ provider: e.target.value })}
-                className="w-full glass-input rounded-2xl py-4 px-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer bg-background/20"
+                className="w-full glass-input rounded-2xl py-4 px-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all appearance-none bg-[#0a0a0a] text-white"
               >
                 <option value="" disabled selected>Select a provider...</option>
                 {providers.map(p => (
@@ -582,7 +582,7 @@ function StepBasicInfo({ providers }: { providers: string[] }) {
                 value={draft.piNumber}
                 onChange={(e) => updateBasicInfo({ piNumber: e.target.value })}
                 placeholder="e.g. PI-2024-882"
-                className="w-full glass-input rounded-2xl py-4 px-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+                className="w-full glass-input rounded-2xl py-4 px-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all"
               />
             </div>
             <div className="space-y-3">
@@ -591,7 +591,7 @@ function StepBasicInfo({ providers }: { providers: string[] }) {
                 type="date"
                 value={draft.eta ?? ''}
                 onChange={(e) => updateBasicInfo({ eta: e.target.value || null })}
-                className="w-full glass-input rounded-2xl py-4 px-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+                className="w-full glass-input rounded-2xl py-4 px-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all"
               />
             </div>
             <div className="space-y-3">
@@ -604,7 +604,7 @@ function StepBasicInfo({ providers }: { providers: string[] }) {
                   value={draft.exchangeRate}
                   onChange={(e) => updateBasicInfo({ exchangeRate: parseFloat(e.target.value) || 3.8 })}
                   placeholder="3.75"
-                  className="w-full glass-input rounded-2xl py-4 pl-24 pr-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+                  className="w-full glass-input rounded-2xl py-4 pl-24 pr-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all"
                 />
               </div>
             </div>
@@ -615,7 +615,7 @@ function StepBasicInfo({ providers }: { providers: string[] }) {
       <div className="flex justify-end">
         <button
           onClick={() => useImportWizardStore.getState().setStep(2)}
-          className="px-12 py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-sm tracking-tight neon-glow hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 cursor-pointer"
+          className="px-12 py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-sm tracking-tight neon-glow hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2"
         >
           Next: Add Products
           <ChevronRight size={18} />
@@ -671,7 +671,7 @@ function StepProducts({ products, onOpenNewProductModal }: { products: Array<{ i
         </div>
         <button
           onClick={onOpenNewProductModal}
-          className="flex items-center gap-2 px-6 py-3 rounded-xl bg-primary/10 text-primary border border-primary/30 font-bold text-sm tracking-tight neon-border hover:bg-primary/20 transition-all cursor-pointer"
+          className="flex items-center gap-2 px-6 py-3 rounded-xl bg-primary/10 text-primary border border-primary/30 font-bold text-sm tracking-tight neon-border hover:bg-primary/20 transition-all"
         >
           <Plus size={18} />
           Agregar Producto Nuevo
@@ -731,7 +731,7 @@ function StepProducts({ products, onOpenNewProductModal }: { products: Array<{ i
                         updateProduct(p.productId, { quantity: parseInt(val) || 1 })
                       }
                     }}
-                    className="bg-foreground/5 border border-border/50 rounded-lg py-1 px-2 text-sm font-bold w-20 text-center mx-auto focus:ring-1 focus:ring-primary/30 cursor-pointer"
+                    className="bg-foreground/5 border border-border/50 rounded-lg py-1 px-2 text-sm font-bold w-20 text-center mx-auto focus:ring-1 focus:ring-primary/30"
                   />
                 </td>
                 <td className="px-6 py-4 text-right">
@@ -750,7 +750,7 @@ function StepProducts({ products, onOpenNewProductModal }: { products: Array<{ i
                           updateProduct(p.productId, { unitPriceUsd: parseFloat(val) || 0 })
                         }
                       }}
-                      className="bg-transparent border-none p-0 text-sm font-bold focus:ring-0 w-24 text-right cursor-pointer"
+                      className="bg-transparent border-none p-0 text-sm font-bold focus:ring-0 w-24 text-right"
                     />
                   </div>
                 </td>
@@ -762,7 +762,7 @@ function StepProducts({ products, onOpenNewProductModal }: { products: Array<{ i
                 <td className="px-6 py-4 text-center">
                   <button
                     onClick={() => removeProduct(p.productId)}
-                    className="p-2 rounded-lg hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition-all cursor-pointer"
+                    className="p-2 rounded-lg hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition-all"
                   >
                     <X size={16} />
                   </button>
@@ -775,7 +775,7 @@ function StepProducts({ products, onOpenNewProductModal }: { products: Array<{ i
 
       <button
         onClick={handleAddRow}
-        className="flex items-center gap-2 text-muted-foreground text-sm font-bold hover:text-primary transition-all cursor-pointer"
+        className="flex items-center gap-2 text-muted-foreground text-sm font-bold hover:text-primary transition-all"
       >
         <Plus size={14} />
         + Agregar fila
@@ -797,7 +797,7 @@ function StepProducts({ products, onOpenNewProductModal }: { products: Array<{ i
                   value={cost.description}
                   onChange={(e) => updateCost(cost.id, 'internal', { description: e.target.value })}
                   placeholder="e.g. Local Freight to Port"
-                  className="w-full glass-input rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+                  className="w-full glass-input rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all"
                 />
               </div>
               <div className="space-y-2">
@@ -818,14 +818,14 @@ function StepProducts({ products, onOpenNewProductModal }: { products: Array<{ i
                       }
                     }}
                     placeholder="0.00"
-                    className="w-full glass-input rounded-xl py-3 pl-8 pr-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+                    className="w-full glass-input rounded-xl py-3 pl-8 pr-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 transition-all"
                   />
                 </div>
               </div>
               {draft.internalCosts.length > 1 && (
                 <button
                   onClick={() => removeCost(cost.id, 'internal')}
-                  className="p-3 rounded-xl hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition-all mb-0.5 cursor-pointer"
+                  className="p-3 rounded-xl hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition-all mb-0.5"
                 >
                   <X size={18} />
                 </button>
@@ -836,7 +836,7 @@ function StepProducts({ products, onOpenNewProductModal }: { products: Array<{ i
 
         <button
           onClick={() => addInternalCost({ category: 'PROVIDER', description: '', amount: 0, currency: 'USD', exchangeRate: null, voucherUrl: null })}
-          className="flex items-center gap-2 text-primary font-bold text-sm tracking-tight hover:text-primary/80 transition-all drop-shadow-[0_0_10px_rgba(0,247,255,0.3)] w-fit cursor-pointer"
+          className="flex items-center gap-2 text-primary font-bold text-sm tracking-tight hover:text-primary/80 transition-all drop-shadow-[0_0_10px_rgba(0,247,255,0.3)] w-fit"
         >
           <Plus size={14} />
           + Add another provider cost
@@ -865,8 +865,30 @@ function StepProducts({ products, onOpenNewProductModal }: { products: Array<{ i
 
 function StepDocuments() {
   const { draft, addDocument, removeDocument } = useImportWizardStore()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   if (!draft) return null
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files) return
+
+    for (const file of Array.from(files)) {
+      const fileType = file.type.split('/')[1]?.toUpperCase() || 'OTHER'
+      const validTypes = ['PDF', 'JPG', 'JPEG', 'PNG', 'XLSX', 'XLS', 'DOC', 'DOCX']
+      const type = validTypes.includes(fileType) ? fileType as 'PI' | 'CI' | 'VOUCHER' | 'OTHER' : 'OTHER'
+
+      addDocument({
+        type,
+        url: URL.createObjectURL(file),
+        name: file.name
+      })
+    }
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
 
   return (
     <motion.div
@@ -886,16 +908,28 @@ function StepDocuments() {
 
           <div className="space-y-8">
             <div className="group relative">
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls,.doc,.docx"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
               <div className="absolute -inset-1 bg-primary/10 rounded-[2rem] blur-xl opacity-0 group-hover:opacity-100 transition-all duration-500" />
-              <div className="relative border-2 border-dashed border-primary/20 rounded-[2rem] p-20 flex flex-col items-center justify-center gap-6 bg-foreground/[0.02] hover:bg-foreground/[0.04] hover:border-primary/40 transition-all cursor-pointer group">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="relative w-full border-2 border-dashed border-primary/20 rounded-[2rem] p-20 flex flex-col items-center justify-center gap-6 bg-foreground/[0.02] hover:bg-foreground/[0.04] hover:border-primary/40 transition-all group"
+              >
                 <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-all duration-500 neon-glow">
                   <Upload size={32} />
                 </div>
                 <div className="text-center">
                   <p className="text-lg font-bold text-foreground mb-2">Universal Drag & Drop</p>
-                  <p className="text-sm text-muted-foreground">Any related file: PDFs, Images, Excel, Videos</p>
+                  <p className="text-sm text-muted-foreground">Click to select files: PDFs, Images, Excel, Videos</p>
                 </div>
-              </div>
+              </button>
             </div>
 
             <div className="space-y-4">
@@ -909,7 +943,7 @@ function StepDocuments() {
                     </div>
                     <button
                       onClick={() => removeDocument(doc.id)}
-                      className="p-1.5 hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition-all rounded-lg cursor-pointer"
+                      className="p-1.5 hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition-all rounded-lg"
                     >
                       <X size={14} />
                     </button>
@@ -983,7 +1017,7 @@ function StepExtraCosts() {
                                 value={cost.description}
                                 onChange={(e) => updateCost(cost.id, 'extra', { description: e.target.value })}
                                 placeholder="Payment description"
-                                className="glass-input text-sm py-2 w-full rounded-lg px-3 cursor-pointer"
+                                className="glass-input text-sm py-2 w-full rounded-lg px-3"
                               />
                             </div>
                             <div className="space-y-1">
@@ -992,7 +1026,7 @@ function StepExtraCosts() {
                                 <select
                                   value={cost.currency}
                                   onChange={(e) => updateCost(cost.id, 'extra', { currency: e.target.value as 'USD' | 'PEN' })}
-                                  className="glass-input rounded-lg py-2 px-2 text-sm cursor-pointer"
+                                  className="glass-input rounded-lg py-2 px-2 text-sm bg-[#0a0a0a] text-white appearance-none"
                                 >
                                   <option value="PEN">PEN</option>
                                   <option value="USD">USD</option>
@@ -1010,7 +1044,7 @@ function StepExtraCosts() {
                                       updateCost(cost.id, 'extra', { amount: parseFloat(val) || 0 })
                                     }
                                   }}
-                                  className="flex-1 glass-input text-sm py-2 font-bold rounded-lg px-3 cursor-pointer"
+                                  className="flex-1 glass-input text-sm py-2 font-bold rounded-lg px-3"
                                 />
                               </div>
                             </div>
@@ -1018,7 +1052,7 @@ function StepExtraCosts() {
                           <div className="flex justify-end mt-3">
                             <button
                               onClick={() => removeCost(cost.id, 'extra')}
-                              className="text-red-400/60 hover:text-red-400 font-bold text-xs tracking-tight transition-all flex items-center gap-1 cursor-pointer"
+                              className="text-red-400/60 hover:text-red-400 font-bold text-xs tracking-tight transition-all flex items-center gap-1"
                             >
                               <Trash2 size={12} />
                               Eliminar
@@ -1030,7 +1064,7 @@ function StepExtraCosts() {
 
                     <button
                       onClick={() => addExtraCost({ category: costCategory.category, description: '', amount: 0, currency: 'PEN', exchangeRate: null, voucherUrl: null })}
-                      className="flex items-center gap-2 text-primary font-bold text-xs tracking-widest uppercase hover:text-primary/80 transition-all ml-2 group/add cursor-pointer"
+                      className="flex items-center gap-2 text-primary font-bold text-xs tracking-widest uppercase hover:text-primary/80 transition-all ml-2 group/add"
                     >
                       <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center group-hover/add:scale-110 transition-all">
                         <Plus size={14} />

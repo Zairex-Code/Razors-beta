@@ -191,7 +191,7 @@ export default function TransfersPageClient({
                       setFromLocation(e.target.value)
                       setSuccess(false)
                     }}
-                    className="w-full bg-black/50 border border-gray-800 rounded-xl py-3 px-4 text-white focus:border-primary focus:outline-none transition-all cursor-pointer appearance-none"
+                    className="w-full glass-input rounded-xl py-3 px-4 text-sm bg-[#0a0a0a] text-white appearance-none"
                   >
                     <option value="">Seleccionar sede de origen...</option>
                     {selectedProductData?.locations.map((loc) => (
@@ -216,7 +216,7 @@ export default function TransfersPageClient({
                       setToLocation(e.target.value)
                       setSuccess(false)
                     }}
-                    className="w-full bg-black/50 border border-gray-800 rounded-xl py-3 px-4 text-white focus:border-primary focus:outline-none transition-all cursor-pointer appearance-none"
+                    className="w-full glass-input rounded-xl py-3 px-4 text-sm bg-[#0a0a0a] text-white appearance-none"
                   >
                     <option value="">Seleccionar sede de destino...</option>
                     {locations
