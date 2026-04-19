@@ -278,6 +278,7 @@ export function ExpensesTable({ expenses }: ExpensesTableProps) {
                             </div>
                           </div>
                         )}
+                      </div>
                     </td>
                   </tr>
                 )
