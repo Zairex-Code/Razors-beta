@@ -15,20 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
-} from 'recharts'
+import { TopProductsChart, SalesSummaryChart } from '@/components/dashboard/charts'
 import {
   DollarSign,
   Package,
@@ -47,7 +34,6 @@ async function getDashboardData(userRole: string) {
     recentSales,
     totalCustomers,
     monthlySales,
-    categoryData,
     topProducts,
   ] = await Promise.all([
     prisma.product.count(),
@@ -61,10 +47,6 @@ async function getDashboardData(userRole: string) {
     isAdminOrBoss ? prisma.sale.groupBy({
       by: ['status'],
       _sum: { totalAmount: true },
-      _count: true,
-    }) : [],
-    isAdminOrBoss ? prisma.product.groupBy({
-      by: ['category'],
       _count: true,
     }) : [],
     isAdminOrBoss ? prisma.saleItem.groupBy({
@@ -84,7 +66,6 @@ async function getDashboardData(userRole: string) {
           })
           return {
             name: product?.name || 'Unknown',
-            sku: product?.sku || '',
             quantity: item._sum.quantity || 0,
           }
         })
@@ -97,13 +78,10 @@ async function getDashboardData(userRole: string) {
     recentSales,
     totalCustomers,
     monthlySales,
-    categoryData,
     topProducts: topProductsWithNames,
     isAdminOrBoss,
   }
 }
-
-const COLORS = ['#00f7ff', '#00d4e0', '#00b1c1', '#008ea2', '#006b83']
 
 export default async function DashboardPage() {
   const user = await getUserWithRole()
@@ -215,21 +193,7 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.topProducts} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" stroke="#00f7ff" opacity={0.1} />
-                    <XAxis type="number" stroke="#00f7ff" />
-                    <YAxis dataKey="name" type="category" stroke="#00f7ff" width={100} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'rgba(0,0,0,0.8)',
-                        border: '1px solid #00f7ff',
-                        borderRadius: '8px',
-                      }}
-                    />
-                    <Bar dataKey="quantity" fill="#00f7ff" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <TopProductsChart data={data.topProducts} />
               </div>
             </CardContent>
           </Card>
@@ -241,33 +205,7 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={[
-                        { name: 'Pagadas', value: salesSummary.paid },
-                        { name: 'Pendientes', value: salesSummary.pending },
-                      ]}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      <Cell fill="#00f7ff" />
-                      <Cell fill="#00d4e0" />
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'rgba(0,0,0,0.8)',
-                        border: '1px solid #00f7ff',
-                        borderRadius: '8px',
-                      }}
-                      formatter={(value) => `S/. ${Number(value).toLocaleString('es-PE')}`}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
+                <SalesSummaryChart paid={salesSummary.paid} pending={salesSummary.pending} />
               </div>
               <div className="mt-4 space-y-2">
                 <div className="flex items-center justify-between">
