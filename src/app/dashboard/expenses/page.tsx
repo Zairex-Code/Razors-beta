@@ -1,7 +1,13 @@
-export default function ExpensesPage() {
-  return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold text-white">Gastos</h1>
-    </div>
-  );
+import { getExpenses } from '@/app/actions/expense-actions'
+import ExpensesPageClient from './ExpensesPageClient'
+
+export default async function ExpensesPage() {
+  const expenses = await getExpenses()
+
+  const formattedExpenses = expenses.map(expense => ({
+    ...expense,
+    date: expense.date instanceof Date ? expense.date.toISOString() : expense.date
+  }))
+
+  return <ExpensesPageClient initialExpenses={formattedExpenses} />
 }

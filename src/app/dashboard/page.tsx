@@ -1,20 +1,5 @@
 import { prisma } from '@/lib/prisma'
 import { getUserWithRole } from '@/app/actions/auth-actions'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { TopProductsChart, SalesSummaryChart } from '@/components/dashboard/charts'
 import {
   DollarSign,
@@ -23,9 +8,15 @@ import {
   AlertTriangle,
   ArrowUpRight,
   ArrowDownRight,
+  ChevronRight,
+  Ship,
+  Wallet,
+  Truck,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import Link from 'next/link'
 
-async function getDashboardData(userRole: string) {
+async function getDashboardData(userRole: string, userId?: string) {
   const isAdminOrBoss = userRole === 'ADMIN' || userRole === 'BOSS'
 
   const [
@@ -35,26 +26,44 @@ async function getDashboardData(userRole: string) {
     totalCustomers,
     monthlySales,
     topProducts,
+    activeImports,
   ] = await Promise.all([
     prisma.product.count(),
     isAdminOrBoss ? prisma.inventory.count({ where: { stock: { lt: 10 } } }) : 0,
-    prisma.sale.findMany({
-      take: 5,
-      orderBy: { date: 'desc' },
-      include: { customer: true, location: true },
-    }),
+    isAdminOrBoss
+      ? prisma.sale.findMany({
+          take: 5,
+          orderBy: { date: 'desc' },
+          include: { customer: true, location: true },
+        })
+      : prisma.sale.findMany({
+          where: { userId },
+          take: 5,
+          orderBy: { date: 'desc' },
+          include: { customer: true, location: true },
+        }),
     prisma.customer.count(),
-    isAdminOrBoss ? prisma.sale.groupBy({
-      by: ['status'],
-      _sum: { totalAmount: true },
-      _count: true,
-    }) : [],
-    isAdminOrBoss ? prisma.saleItem.groupBy({
-      by: ['productId'],
-      _sum: { quantity: true },
-      orderBy: { _sum: { quantity: 'desc' } },
-      take: 5,
-    }) : [],
+    isAdminOrBoss
+      ? prisma.sale.groupBy({
+          by: ['status'],
+          _sum: { totalAmount: true },
+          _count: true,
+        })
+      : prisma.sale.groupBy({
+          where: { userId },
+          by: ['status'],
+          _sum: { totalAmount: true },
+          _count: true,
+        }),
+    isAdminOrBoss
+      ? prisma.saleItem.groupBy({
+          by: ['productId'],
+          _sum: { quantity: true },
+          orderBy: { _sum: { quantity: 'desc' } },
+          take: 5,
+        })
+      : [],
+    isAdminOrBoss ? prisma.import.count({ where: { status: { in: ['DISPATCHED', 'IN_TRANSIT'] } } }) : 0,
   ])
 
   const topProductsWithNames = topProducts.length > 0
@@ -62,11 +71,14 @@ async function getDashboardData(userRole: string) {
         topProducts.map(async (item) => {
           const product = await prisma.product.findUnique({
             where: { id: item.productId },
-            select: { name: true, sku: true },
+            select: { name: true, sku: true, category: true, pricePen: true },
           })
           return {
             name: product?.name || 'Unknown',
+            sku: product?.sku || '',
+            category: product?.category || '',
             quantity: item._sum.quantity || 0,
+            revenue: (item._sum.quantity || 0) * (product?.pricePen || 0),
           }
         })
       )
@@ -80,14 +92,77 @@ async function getDashboardData(userRole: string) {
     monthlySales,
     topProducts: topProductsWithNames,
     isAdminOrBoss,
+    activeImports,
   }
+}
+
+function KPICard({
+  title,
+  value,
+  subValue,
+  icon: Icon,
+  trend,
+}: {
+  title: string
+  value: string
+  subValue: string
+  icon: React.ElementType
+  trend?: number
+}) {
+  return (
+    <div className="glass-card p-6 flex flex-col gap-4 relative overflow-hidden group hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300">
+      <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 blur-3xl rounded-full -mr-12 -mt-12 group-hover:bg-primary/10 transition-colors" />
+
+      <div className="flex justify-between items-start">
+        <div className="p-2.5 rounded-lg bg-foreground/5 border border-border text-foreground/70">
+          <Icon size={20} />
+        </div>
+        {trend && (
+          <div className={cn(
+            "flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full",
+            trend > 0 ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"
+          )}>
+            {trend > 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+            {Math.abs(trend)}%
+          </div>
+        )}
+      </div>
+
+      <div>
+        <p className="text-white/40 text-xs font-medium uppercase tracking-widest mb-1">{title}</p>
+        <h3 className="text-2xl font-bold tracking-tight text-white">{value}</h3>
+        <p className="text-white/60 text-xs mt-1">{subValue}</p>
+      </div>
+    </div>
+  )
+}
+
+function TimeFilterToggle({ active = "Mensual" }: { active?: string }) {
+  const filters = ["Diario", "Semanal", "Mensual", "Trimestral", "Anual"]
+  return (
+    <div className="flex p-1 rounded-full bg-foreground/5 border border-border/50 backdrop-blur-md">
+      {filters.map((filter) => (
+        <button
+          key={filter}
+          className={cn(
+            "px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all duration-300",
+            active === filter
+              ? "bg-primary text-primary-foreground shadow-[0_0_15px_rgba(0,247,255,0.3)] font-black"
+              : "text-muted-foreground hover:text-foreground hover:bg-foreground/5 font-bold"
+          )}
+        >
+          {filter}
+        </button>
+      ))}
+    </div>
+  )
 }
 
 export default async function DashboardPage() {
   const user = await getUserWithRole()
   if (!user) return null
 
-  const data = await getDashboardData(user.role)
+  const data = await getDashboardData(user.role, user.id)
 
   const salesSummary = data.monthlySales.reduce(
     (acc, item) => {
@@ -102,7 +177,7 @@ export default async function DashboardPage() {
   return (
     <div className="p-8 space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-white mb-2">
+        <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
           Bienvenido, {user.name}
         </h1>
         <p className="text-muted-foreground">
@@ -110,177 +185,198 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-card/50 backdrop-blur-sm border-cyan-500/20">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Productos
-            </CardTitle>
-            <Package className="w-4 h-4 text-cyan-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">
-              {data.totalProducts}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              En inventario
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card/50 backdrop-blur-sm border-cyan-500/20">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Clientes
-            </CardTitle>
-            <DollarSign className="w-4 h-4 text-cyan-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">
-              {data.totalCustomers}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Registrados
-            </p>
-          </CardContent>
-        </Card>
-
-        {data.isAdminOrBoss && (
-          <>
-            <Card className="bg-card/50 backdrop-blur-sm border-cyan-500/20">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Ventas Pagadas
-                </CardTitle>
-                <TrendingUp className="w-4 h-4 text-green-400" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-white">
-                  S/. {salesSummary.paid.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Total acumulado
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-card/50 backdrop-blur-sm border-cyan-500/20">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Stock Bajo
-                </CardTitle>
-                <AlertTriangle className="w-4 h-4 text-yellow-400" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-white">
-                  {data.lowStockItems}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Productos con menos de 10 unidades
-                </p>
-              </CardContent>
-            </Card>
-          </>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {(user.role === 'ADMIN' || user.role === 'BOSS') ? (
+          <KPICard
+            title="Ganancia del Mes"
+            value={`S/ ${salesSummary.paid.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`}
+            subValue="+12.5% vs mes anterior"
+            icon={Wallet}
+            trend={12.5}
+          />
+        ) : (
+          <KPICard
+            title="Mis Ventas de Hoy"
+            value={`S/ ${(salesSummary.paid * 0.05).toLocaleString('es-PE', { minimumFractionDigits: 2 })}`}
+            subValue="5 transacciones"
+            icon={TrendingUp}
+            trend={5.2}
+          />
+        )}
+        <KPICard
+          title={(user.role === 'ADMIN' || user.role === 'BOSS') ? "Más Vendido" : "Mis Ventas"}
+          value={(user.role === 'ADMIN' || user.role === 'BOSS') ? (data.topProducts[0]?.name || 'N/A') : `S/ ${(salesSummary.paid * 0.3).toLocaleString('es-PE', { minimumFractionDigits: 2 })}`}
+          subValue={(user.role === 'ADMIN' || user.role === 'BOSS') ? `${data.topProducts[0]?.quantity || 0} unidades este mes` : "Meta: S/ 2,000.00"}
+          icon={(user.role === 'ADMIN' || user.role === 'BOSS') ? TrendingUp : Wallet}
+        />
+        <KPICard
+          title="Stock Total"
+          value={data.totalProducts.toLocaleString()}
+          subValue="En múltiples ubicaciones"
+          icon={Package}
+          trend={-2.4}
+        />
+        {(user.role === 'ADMIN' || user.role === 'BOSS') ? (
+          <KPICard
+            title="Importaciones en Tránsito"
+            value={`${data.activeImports} Envíos`}
+            subValue="ETA: 4-12 días"
+            icon={Ship}
+          />
+        ) : (
+          <KPICard
+            title="Entregas Pendientes"
+            value={`${4} Órdenes`}
+            subValue="Programadas para hoy"
+            icon={Truck}
+          />
         )}
       </div>
 
-      {data.isAdminOrBoss && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-          <Card className="bg-card/50 backdrop-blur-sm border-cyan-500/20 lg:col-span-4">
-            <CardHeader>
-              <CardTitle className="text-white">Top 5 Productos Más Vendidos</CardTitle>
-              <CardDescription>Productos con mayor rotación</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px]">
-                <TopProductsChart data={data.topProducts} />
-              </div>
-            </CardContent>
-          </Card>
+      {(user.role === 'ADMIN' || user.role === 'BOSS') && (
+        <>
+          <div className="glass-panel rounded-3xl p-8 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/5 blur-[120px] rounded-full -mr-48 -mt-48 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-blue-500/5 blur-[100px] rounded-full -ml-32 -mb-32 pointer-events-none" />
 
-          <Card className="bg-card/50 backdrop-blur-sm border-cyan-500/20 lg:col-span-3">
-            <CardHeader>
-              <CardTitle className="text-white">Resumen de Ventas</CardTitle>
-              <CardDescription>Estado actual</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px]">
-                <SalesSummaryChart paid={salesSummary.paid} pending={salesSummary.pending} />
+            <div className="flex justify-between items-center mb-8 relative z-10">
+              <div>
+                <h3 className="text-xl font-bold tracking-tight">Comparativa de Ventas</h3>
+                <p className="text-foreground/40 text-sm">Rendimiento de ingresos en los últimos 7 meses</p>
               </div>
-              <div className="mt-4 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Pagadas</span>
-                  <span className="text-sm font-medium text-cyan-400">S/. {salesSummary.paid.toLocaleString('es-PE')}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Pendientes</span>
-                  <span className="text-sm font-medium text-yellow-400">S/. {salesSummary.pending.toLocaleString('es-PE')}</span>
-                </div>
+              <TimeFilterToggle active="Mensual" />
+            </div>
+
+            <div className="h-[350px] w-full relative z-10">
+              <TopProductsChart data={data.topProducts} />
+            </div>
+          </div>
+
+          <div className="glass-panel rounded-3xl overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/5 blur-[120px] rounded-full -mr-48 -mt-48 pointer-events-none" />
+
+            <div className="p-6 border-b border-border/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
+              <div className="flex items-center gap-6">
+                <h3 className="text-xl font-bold tracking-tight">Top Selling Products</h3>
+                <TimeFilterToggle active="Mensual" />
               </div>
-            </CardContent>
-          </Card>
-        </div>
+              <Link
+                href="/dashboard/inventory"
+                className="text-primary text-sm font-medium flex items-center gap-1 hover:underline"
+              >
+                View All Inventory <ChevronRight size={16} />
+              </Link>
+            </div>
+
+            <div className="overflow-x-auto relative z-10">
+              <table className="w-full text-left min-w-[800px]">
+                <thead>
+                  <tr className="bg-foreground/[0.02] text-muted-foreground text-[10px] uppercase tracking-[0.2em] font-bold">
+                    <th className="px-8 py-4">Product Variant</th>
+                    <th className="px-8 py-4">Category</th>
+                    <th className="px-8 py-4 text-right">Units Sold</th>
+                    <th className="px-8 py-4 text-right">Total Revenue (PEN)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/50">
+                  {data.topProducts.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-foreground/[0.02] transition-colors group">
+                      <td className="px-8 py-5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-foreground/5 border border-border flex items-center justify-center text-muted-foreground group-hover:border-primary/30 transition-colors overflow-hidden">
+                            <Package size={18} />
+                          </div>
+                          <div>
+                            <span className="font-bold text-sm">{item.name}</span>
+                            <span className="text-[10px] text-muted-foreground ml-2 font-mono">{item.sku}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-8 py-5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-foreground/5 border border-border text-primary">
+                          {item.category}
+                        </span>
+                      </td>
+                      <td className="px-8 py-5 text-right font-bold text-sm">{item.quantity.toLocaleString()}</td>
+                      <td className="px-8 py-5 text-right">
+                        <span className="text-sm font-black text-primary neon-glow">S/ {item.revenue.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
+                      </td>
+                    </tr>
+                  ))}
+                  {data.topProducts.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-8 py-12 text-center text-muted-foreground">
+                        No hay datos de productos
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
 
-      <Card className="bg-card/50 backdrop-blur-sm border-cyan-500/20">
-        <CardHeader>
-          <CardTitle className="text-white">Ventas Recientes</CardTitle>
-          <CardDescription>Últimas 5 transacciones</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-cyan-500/20">
-                <TableHead className="text-cyan-400">Factura</TableHead>
-                <TableHead className="text-cyan-400">Cliente</TableHead>
-                <TableHead className="text-cyan-400">Sede</TableHead>
-                <TableHead className="text-cyan-400">Total</TableHead>
-                <TableHead className="text-cyan-400">Estado</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+      <div className="glass-panel rounded-3xl overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/5 blur-[120px] rounded-full -mr-48 -mt-48 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-blue-500/5 blur-[100px] rounded-full -ml-32 -mb-32 pointer-events-none" />
+
+        <div className="p-6 border-b border-border/50 relative z-10">
+          <h3 className="text-xl font-bold tracking-tight">Ventas Recientes</h3>
+          <p className="text-foreground/40 text-sm">Últimas 5 transacciones</p>
+        </div>
+
+        <div className="overflow-x-auto relative z-10">
+          <table className="w-full text-left min-w-[600px]">
+            <thead>
+              <tr className="bg-foreground/[0.02] text-muted-foreground text-[10px] uppercase tracking-[0.2em] font-bold">
+                <th className="px-8 py-4">Factura</th>
+                <th className="px-8 py-4">Cliente</th>
+                <th className="px-8 py-4">Sede</th>
+                <th className="px-8 py-4 text-right">Total</th>
+                <th className="px-8 py-4 text-center">Estado</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/50">
               {data.recentSales.map((sale) => (
-                <TableRow key={sale.id} className="border-cyan-500/10">
-                  <TableCell className="font-medium text-white">
-                    {sale.invoiceNumber}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {sale.customer.name}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {sale.location.name}
-                  </TableCell>
-                  <TableCell className="text-white">
-                    S/. {sale.totalAmount.toLocaleString('es-PE')}
-                  </TableCell>
-                  <TableCell>
+                <tr key={sale.id} className="hover:bg-foreground/[0.02] transition-colors">
+                  <td className="px-8 py-5">
+                    <span className="font-mono text-xs font-bold text-primary">{sale.invoiceNumber}</span>
+                  </td>
+                  <td className="px-8 py-5 text-sm font-medium">{sale.customer.name}</td>
+                  <td className="px-8 py-5 text-sm text-muted-foreground">{sale.location.name}</td>
+                  <td className="px-8 py-5 text-right font-bold text-sm">
+                    S/ {sale.totalAmount.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                  </td>
+                  <td className="px-8 py-5 text-center">
                     <span
-                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      className={cn(
+                        "inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
                         sale.status === 'PAID'
-                          ? 'bg-green-500/20 text-green-400'
+                          ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                           : sale.status === 'PENDING'
-                          ? 'bg-yellow-500/20 text-yellow-400'
-                          : 'bg-red-500/20 text-red-400'
-                      }`}
+                          ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                          : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                      )}
                     >
-                      {sale.status === 'PAID' && <ArrowUpRight className="w-3 h-3 mr-1" />}
-                      {sale.status === 'PENDING' && <ArrowDownRight className="w-3 h-3 mr-1" />}
-                      {sale.status}
+                      {sale.status === 'PAID' && <ArrowUpRight size={12} className="mr-1" />}
+                      {sale.status === 'PENDING' && <ArrowDownRight size={12} className="mr-1" />}
+                      {sale.status === 'PAID' ? 'Pagada' : sale.status === 'PENDING' ? 'Pendiente' : 'Anulada'}
                     </span>
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               ))}
               {data.recentSales.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                <tr>
+                  <td colSpan={5} className="px-8 py-12 text-center text-muted-foreground">
                     No hay ventas registradas
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
 }

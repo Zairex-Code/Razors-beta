@@ -33,7 +33,7 @@ interface SaleItem {
 interface Sale {
   id: string
   invoiceNumber: string
-  date: Date
+  date: Date | string
   status: 'PAID' | 'PENDING' | 'VOID'
   totalAmount: number
   customer: {

@@ -1,7 +1,14 @@
-export default function ImportsPage() {
-  return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold text-white">Importaciones</h1>
-    </div>
-  );
+import { getImports } from '@/app/actions/import-actions'
+import ImportsPageClient from './ImportsPageClient'
+
+export default async function ImportsPage() {
+  const imports = await getImports()
+
+  const formattedImports = imports.map(imp => ({
+    ...imp,
+    eta: imp.eta?.toISOString() ?? null,
+    createdAt: imp.createdAt.toISOString(),
+  }))
+
+  return <ImportsPageClient initialImports={formattedImports} />
 }

@@ -4,17 +4,41 @@ import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { SaleStatus } from '@prisma/client'
 
-export async function getSales(status?: SaleStatus) {
-  return prisma.sale.findMany({
-    where: status ? { status } : undefined,
-    include: {
-      customer: true,
-      user: { select: { id: true, name: true } },
-      location: true,
-      items: { include: { product: true } }
-    },
-    orderBy: { date: 'desc' }
-  })
+export async function getSales(options: {
+  status?: SaleStatus
+  page?: number
+  perPage?: number
+} = {}) {
+  const { status, page = 1, perPage = 20 } = options
+  const skip = (page - 1) * perPage
+
+  const [sales, total] = await Promise.all([
+    prisma.sale.findMany({
+      where: status ? { status } : undefined,
+      include: {
+        customer: true,
+        user: { select: { id: true, name: true } },
+        location: true,
+        items: { include: { product: true } }
+      },
+      orderBy: { date: 'desc' },
+      skip,
+      take: perPage
+    }),
+    prisma.sale.count({
+      where: status ? { status } : undefined
+    })
+  ])
+
+  return {
+    sales,
+    pagination: {
+      page,
+      perPage,
+      total,
+      totalPages: Math.ceil(total / perPage)
+    }
+  }
 }
 
 export async function getSale(id: string) {
@@ -90,30 +114,31 @@ export async function voidSale(saleId: string) {
     throw new Error('Sale not found or already voided')
   }
 
-  for (const item of sale.items) {
-    await prisma.inventory.update({
-      where: {
-        productId_locationId: {
-          productId: item.productId,
-          locationId: sale.locationId
+  await prisma.$transaction(async (tx) => {
+    for (const item of sale.items) {
+      await tx.inventory.update({
+        where: {
+          productId_locationId: {
+            productId: item.productId,
+            locationId: sale.locationId
+          }
+        },
+        data: {
+          stock: { increment: item.quantity }
         }
-      },
+      })
+    }
+
+    await tx.sale.update({
+      where: { id: saleId },
       data: {
-        stock: { increment: item.quantity }
+        status: 'VOID',
+        totalAmount: 0
       }
     })
-  }
-
-  const voidedSale = await prisma.sale.update({
-    where: { id: saleId },
-    data: {
-      status: 'VOID',
-      totalAmount: 0
-    }
   })
 
   revalidatePath('/dashboard/sales')
-  return voidedSale
 }
 
 export async function generateInvoiceNumber() {

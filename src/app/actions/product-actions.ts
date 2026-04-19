@@ -34,6 +34,20 @@ export async function getProductBySku(sku: string) {
   })
 }
 
+export async function searchProducts(query: string) {
+  return prisma.product.findMany({
+    where: {
+      OR: [
+        { name: { contains: query, mode: 'insensitive' } },
+        { sku: { contains: query, mode: 'insensitive' } },
+        { category: { contains: query, mode: 'insensitive' } }
+      ]
+    },
+    orderBy: { name: 'asc' },
+    take: 10
+  })
+}
+
 export async function createProduct(data: {
   sku: string
   name: string

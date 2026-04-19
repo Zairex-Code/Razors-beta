@@ -14,6 +14,9 @@ import {
   Settings,
   LogOut,
   Ship,
+  ShieldAlert,
+  UserCog,
+  FileText,
 } from 'lucide-react'
 import { signOutAction } from '@/app/actions/auth-actions'
 
@@ -25,6 +28,12 @@ const navigation = [
   { name: 'Ventas', href: '/dashboard/sales', icon: ShoppingCart, roles: ['ADMIN', 'BOSS', 'EMPLOYEE'] },
   { name: 'Gastos', href: '/dashboard/expenses', icon: Receipt, roles: ['ADMIN', 'BOSS'] },
   { name: 'Reportes', href: '/dashboard/reports', icon: BarChart3, roles: ['ADMIN', 'BOSS'] },
+]
+
+const adminNavigation = [
+  { name: 'User Management', href: '/dashboard/users', icon: UserCog, roles: ['ADMIN'] },
+  { name: 'System Settings', href: '/dashboard/settings', icon: Settings, roles: ['ADMIN'] },
+  { name: 'Security Logs', href: '/dashboard/logs', icon: ShieldAlert, roles: ['ADMIN'] },
 ]
 
 interface SidebarProps {
@@ -59,8 +68,8 @@ export function Sidebar({ userRole = 'EMPLOYEE' }: SidebarProps) {
               href={item.href}
               className={cn(
                 "w-full flex items-center gap-3 py-3 rounded-xl transition-all duration-300 group relative",
-                isActive 
-                  ? "bg-primary/10 text-primary neon-border" 
+                isActive
+                  ? "bg-primary/10 text-primary neon-border"
                   : "text-foreground/50 hover:text-foreground hover:bg-foreground/5"
               )}
             >
@@ -75,16 +84,44 @@ export function Sidebar({ userRole = 'EMPLOYEE' }: SidebarProps) {
             </Link>
           )
         })}
+
+        {adminNavigation.some(item => item.roles.includes(userRole)) && (
+          <div className="mt-6 pt-4 border-t border-white/5">
+            <span className="px-4 text-[10px] font-bold uppercase tracking-widest text-purple-400/60 mb-2 block">
+              System Admin
+            </span>
+            {adminNavigation.map((item) => {
+              if (!item.roles.includes(userRole)) return null
+
+              const isActive = pathname === item.href
+
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={cn(
+                    "w-full flex items-center gap-3 py-3 rounded-xl transition-all duration-300 group relative mb-1",
+                    isActive
+                      ? "bg-purple-500/10 text-purple-400 border border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.1)]"
+                      : "text-foreground/50 hover:text-foreground hover:bg-foreground/5"
+                  )}
+                >
+                  {isActive && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
+                  )}
+                  <item.icon size={20} className={cn(
+                    "transition-transform duration-300 shrink-0",
+                    isActive ? "scale-110" : "group-hover:scale-110"
+                  )} />
+                  <span className="font-medium text-sm tracking-wide truncate">{item.name}</span>
+                </Link>
+              )
+            })}
+          </div>
+        )}
       </nav>
 
-      <div className="p-3 border-t border-white/5 space-y-1 relative z-10">
-        <Link
-          href="/dashboard/settings"
-          className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-foreground/50 hover:text-foreground hover:bg-foreground/5 transition-all"
-        >
-          <Settings size={20} />
-          Configuración
-        </Link>
+      <div className="p-3 border-t border-white/5 relative z-10">
         <button
           onClick={() => signOutAction()}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-all"

@@ -3,6 +3,9 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 
 const PUBLIC_ROUTES = ['/login']
 
+const ADMIN_ROUTES = ['/dashboard/users', '/dashboard/settings', '/dashboard/logs']
+const BOSS_ROUTES = ['/dashboard/reports', '/dashboard/imports', '/dashboard/expenses']
+
 export async function proxy(request: NextRequest) {
   const response = NextResponse.next({
     request: {
@@ -44,12 +47,18 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  const userRole = user.user_metadata?.role
+  const userRole = user.user_metadata?.role || 'EMPLOYEE'
 
-  const employeeRestrictedRoutes = ['/dashboard/reports', '/dashboard/imports', '/dashboard/expenses']
-  if (userRole === 'EMPLOYEE' && employeeRestrictedRoutes.some(route => pathname.startsWith(route))) {
+  if (ADMIN_ROUTES.some(route => pathname.startsWith(route)) && userRole !== 'ADMIN') {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
+
+  if (BOSS_ROUTES.some(route => pathname.startsWith(route)) && userRole === 'EMPLOYEE') {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  response.headers.set('x-user-role', userRole)
+  response.headers.set('x-user-id', user.id)
 
   return response
 }
