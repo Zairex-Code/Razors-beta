@@ -16,12 +16,15 @@ import {
   CheckCircle,
   Pencil,
   Percent,
+  ArrowDown,
+  ArrowUp,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { usePOSStore, type CartItem } from '@/stores/pos-store'
 import { createSale, generateInvoiceNumber } from '@/app/actions/sale-actions'
+import { createCustomer } from '@/app/actions/customer-actions'
 
 interface Product {
   id: string
@@ -35,14 +38,16 @@ interface Product {
   }>
 }
 
+interface Customer {
+  id: string
+  name: string
+  docType: string
+  docNumber: string
+}
+
 interface POSCheckoutProps {
   products: Product[]
-  customers: Array<{
-    id: string
-    name: string
-    docType: string
-    docNumber: string
-  }>
+  customers: Customer[]
   userId: string
   locationId: string
   locationName: string
@@ -52,11 +57,20 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('ALL')
   const [showCustomerSelect, setShowCustomerSelect] = useState(false)
-  const [selectedCustomer, setSelectedCustomer] = useState<typeof customers[0] | null>(null)
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [saleComplete, setSaleComplete] = useState<{ invoiceNumber: string; total: number } | null>(null)
   const [editingPriceItem, setEditingPriceItem] = useState<CartItem | null>(null)
   const [newPriceInput, setNewPriceInput] = useState('')
+
+  const [customerSearchQuery, setCustomerSearchQuery] = useState('')
+  const [showCreateCustomer, setShowCreateCustomer] = useState(false)
+  const [newCustomerDocType, setNewCustomerDocType] = useState('DNI')
+  const [newCustomerDocNumber, setNewCustomerDocNumber] = useState('')
+  const [newCustomerName, setNewCustomerName] = useState('')
+  const [newCustomerEmail, setNewCustomerEmail] = useState('')
+  const [newCustomerPhone, setNewCustomerPhone] = useState('')
+  const [isCreatingCustomer, setIsCreatingCustomer] = useState(false)
 
   const { cart, addToCart, removeFromCart, updateQuantity, updateUnitPrice, clearCart, setCustomer } = usePOSStore()
 
@@ -73,6 +87,15 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
     const hasStock = product.inventory.some(inv => inv.locationId === locationId && inv.stock > 0)
     return matchesSearch && matchesCategory && hasStock
   })
+
+  const filteredCustomers = useMemo(() => {
+    if (!customerSearchQuery.trim()) return customers
+    const q = customerSearchQuery.toLowerCase()
+    return customers.filter(c =>
+      c.name.toLowerCase().includes(q) ||
+      c.docNumber.includes(q)
+    )
+  }, [customers, customerSearchQuery])
 
   const cartTotal = cart.reduce((sum, item) => sum + item.subtotal, 0)
   const igv = cartTotal / 1.18
@@ -95,10 +118,12 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
     }
   }
 
-  const handleSelectCustomer = (customer: typeof customers[0]) => {
+  const handleSelectCustomer = (customer: Customer) => {
     setSelectedCustomer(customer)
     setCustomer(customer.id)
     setShowCustomerSelect(false)
+    setCustomerSearchQuery('')
+    setShowCreateCustomer(false)
   }
 
   const handleOpenPriceEdit = (item: CartItem) => {
@@ -164,9 +189,83 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
     }
   }
 
+  const handleCreateCustomer = async () => {
+    if (!newCustomerDocNumber.trim() || !newCustomerName.trim()) {
+      Swal.fire({
+        title: 'Campos requeridos',
+        text: 'El número de documento y nombre son obligatorios.',
+        icon: 'warning',
+        background: '#0a0a0a',
+        color: '#ffffff',
+        confirmButtonColor: '#00f7ff',
+      })
+      return
+    }
+    if (newCustomerDocType === 'RUC' && newCustomerDocNumber.length !== 11) {
+      Swal.fire({ title: 'RUC inválido', text: 'El RUC debe tener 11 dígitos.', icon: 'error', background: '#0a0a0a', color: '#ffffff', confirmButtonColor: '#00f7ff' })
+      return
+    }
+    if (newCustomerDocType === 'DNI' && newCustomerDocNumber.length !== 8) {
+      Swal.fire({ title: 'DNI inválido', text: 'El DNI debe tener 8 dígitos.', icon: 'error', background: '#0a0a0a', color: '#ffffff', confirmButtonColor: '#00f7ff' })
+      return
+    }
+
+    setIsCreatingCustomer(true)
+    try {
+      const newC = await createCustomer({
+        docType: newCustomerDocType,
+        docNumber: newCustomerDocNumber.trim(),
+        name: newCustomerName.trim(),
+        email: newCustomerEmail.trim() || undefined,
+        phone: newCustomerPhone.trim() || undefined
+      })
+      handleSelectCustomer(newC)
+      setNewCustomerDocType('DNI')
+      setNewCustomerDocNumber('')
+      setNewCustomerName('')
+      setNewCustomerEmail('')
+      setNewCustomerPhone('')
+      Swal.fire({
+        title: 'Cliente creado',
+        text: `${newC.name} ha sido agregado exitosamente.`,
+        icon: 'success',
+        background: '#0a0a0a',
+        color: '#ffffff',
+        confirmButtonColor: '#00f7ff',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 2000,
+      })
+    } catch (err: any) {
+      Swal.fire({
+        title: 'Error',
+        text: err.message || 'No se pudo crear el cliente.',
+        icon: 'error',
+        background: '#0a0a0a',
+        color: '#ffffff',
+        confirmButtonColor: '#00f7ff',
+      })
+    } finally {
+      setIsCreatingCustomer(false)
+    }
+  }
+
   const handleNewSale = () => {
     setSaleComplete(null)
     setSelectedCustomer(null)
+  }
+
+  const openCustomerModal = () => {
+    setShowCustomerSelect(true)
+    setShowCreateCustomer(false)
+    setCustomerSearchQuery('')
+  }
+
+  const closeCustomerModal = () => {
+    setShowCustomerSelect(false)
+    setShowCreateCustomer(false)
+    setCustomerSearchQuery('')
   }
 
   if (saleComplete) {
@@ -228,13 +327,13 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
                 placeholder="Buscar por nombre o SKU..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-black/60 border border-gray-700 rounded-xl py-3 pl-12 pr-4 text-sm focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all"
+                className="w-full border border-gray-700 rounded-xl py-3 pl-12 pr-4 text-sm focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all bg-transparent"
               />
             </div>
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="bg-black/60 border border-gray-700 rounded-xl py-3 px-4 text-sm text-white appearance-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/50"
+              className="border border-gray-700 rounded-xl py-3 px-4 text-sm text-white appearance-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/50 bg-transparent"
             >
               {categories.map(cat => (
                 <option key={cat} value={cat}>
@@ -258,12 +357,12 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
                   disabled={stock === 0}
                   className={cn(
                     "relative flex flex-col justify-between p-5 rounded-2xl text-left transition-all duration-200",
-                    "bg-black/60 border backdrop-blur-xl",
+                    "border backdrop-blur-xl",
                     stock === 0
-                      ? "border-gray-800 opacity-40 cursor-not-allowed"
+                      ? "border-gray-800/50 opacity-40 cursor-not-allowed"
                       : inCart
-                      ? "border-primary/60 bg-primary/10"
-                      : "border-gray-800 hover:border-primary/40 hover:bg-primary/5 hover:scale-[1.01]",
+                      ? "border-primary/60 bg-primary/5"
+                      : "border-gray-800/60 hover:border-primary/40 hover:bg-primary/5 hover:scale-[1.01]",
                   )}
                   style={{ minHeight: '180px' }}
                 >
@@ -311,7 +410,7 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
         {!selectedCustomer ? (
           <div className="p-4 shrink-0">
             <button
-              onClick={() => setShowCustomerSelect(true)}
+              onClick={openCustomerModal}
               className="w-full border-2 border-dashed border-gray-700 rounded-xl p-4 flex items-center gap-4 hover:border-primary/40 hover:bg-primary/5 transition-all"
             >
               <User size={20} className="text-primary" />
@@ -347,7 +446,7 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
                 "rounded-xl p-4 border backdrop-blur-xl",
                 item.hasDiscount
                   ? "bg-rose-500/5 border-rose-500/20"
-                  : "bg-gray-900/60 border-gray-800"
+                  : "bg-gray-900/40 border-gray-800"
               )}>
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1 min-w-0 mr-2">
@@ -476,36 +575,152 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
             className="bg-black/90 backdrop-blur-xl rounded-3xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col border border-gray-800"
           >
             <div className="p-6 border-b border-gray-800 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-100">Seleccionar Cliente</h2>
-              <button onClick={() => setShowCustomerSelect(false)} className="p-2 rounded-lg hover:bg-gray-800 text-gray-500 hover:text-gray-200 transition-all">
+              <h2 className="text-xl font-bold text-gray-100">
+                {showCreateCustomer ? 'Agregar Nuevo Cliente' : 'Seleccionar Cliente'}
+              </h2>
+              <button onClick={closeCustomerModal} className="p-2 rounded-lg hover:bg-gray-800 text-gray-500 hover:text-gray-200 transition-all">
                 <X size={20} />
               </button>
             </div>
-            <div className="p-4 border-b border-gray-800">
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                <Input
-                  type="text"
-                  placeholder="Buscar cliente..."
-                  className="w-full bg-black/60 border border-gray-700 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:border-primary"
-                />
-              </div>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {customers.map(customer => (
-                <button
-                  key={customer.id}
-                  onClick={() => handleSelectCustomer(customer)}
-                  className="w-full rounded-xl p-4 flex items-center gap-4 bg-black/40 border border-gray-800 hover:border-primary/40 hover:bg-primary/5 transition-all text-left"
-                >
-                  <User size={20} className="text-primary shrink-0" />
-                  <div>
-                    <p className="font-bold text-sm text-gray-100">{customer.name}</p>
-                    <p className="text-xs text-gray-500">{customer.docType} {customer.docNumber}</p>
+
+            {!showCreateCustomer ? (
+              <>
+                <div className="p-4 border-b border-gray-800">
+                  <div className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                    <Input
+                      type="text"
+                      placeholder="Buscar por nombre o número de documento..."
+                      value={customerSearchQuery}
+                      onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                      className="w-full border border-gray-700 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:border-primary bg-transparent"
+                    />
                   </div>
-                </button>
-              ))}
-            </div>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                  {filteredCustomers.length === 0 && customerSearchQuery.trim() ? (
+                    <div className="text-center py-8 space-y-4">
+                      <div className="w-16 h-16 rounded-full bg-gray-800/50 flex items-center justify-center mx-auto">
+                        <User size={28} className="text-gray-600" />
+                      </div>
+                      <div>
+                        <p className="text-gray-400 text-sm mb-1">No se encontraron clientes</p>
+                        <p className="text-gray-600 text-xs">¿Deseas crear uno nuevo?</p>
+                      </div>
+                      <Button
+                        onClick={() => {
+                          setShowCreateCustomer(true)
+                          setNewCustomerName(customerSearchQuery)
+                        }}
+                        className="bg-primary text-primary-foreground font-bold neon-glow hover:scale-[1.02]"
+                      >
+                        <Plus size={14} className="mr-2" />
+                        Agregar: &quot;{customerSearchQuery}&quot;
+                      </Button>
+                    </div>
+                  ) : (
+                    filteredCustomers.map(customer => (
+                      <button
+                        key={customer.id}
+                        onClick={() => handleSelectCustomer(customer)}
+                        className="w-full rounded-xl p-4 flex items-center gap-4 border border-gray-800 hover:border-primary/40 hover:bg-primary/5 transition-all text-left"
+                      >
+                        <User size={20} className="text-primary shrink-0" />
+                        <div>
+                          <p className="font-bold text-sm text-gray-100">{customer.name}</p>
+                          <p className="text-xs text-gray-500">{customer.docType} {customer.docNumber}</p>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 ml-1">Tipo</label>
+                    <select
+                      value={newCustomerDocType}
+                      onChange={(e) => setNewCustomerDocType(e.target.value)}
+                      className="w-full border border-gray-700 rounded-xl py-2.5 px-4 text-sm bg-transparent focus:border-primary appearance-none cursor-pointer"
+                    >
+                      <option value="DNI">DNI</option>
+                      <option value="RUC">RUC</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 ml-1">Número</label>
+                    <Input
+                      type="text"
+                      value={newCustomerDocNumber}
+                      onChange={(e) => setNewCustomerDocNumber(e.target.value.replace(/\D/g, ''))}
+                      placeholder={newCustomerDocType === 'RUC' ? '20601234567' : '12345678'}
+                      maxLength={newCustomerDocType === 'RUC' ? 11 : 8}
+                      className="border border-gray-700 rounded-xl py-2.5 px-4 text-sm focus:border-primary bg-transparent"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 ml-1">Nombre / Razón Social</label>
+                  <Input
+                    type="text"
+                    value={newCustomerName}
+                    onChange={(e) => setNewCustomerName(e.target.value)}
+                    placeholder="Nombre completo o razón social"
+                    className="border border-gray-700 rounded-xl py-2.5 px-4 text-sm focus:border-primary bg-transparent"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 ml-1">Email (opcional)</label>
+                    <Input
+                      type="email"
+                      value={newCustomerEmail}
+                      onChange={(e) => setNewCustomerEmail(e.target.value)}
+                      placeholder="email@ejemplo.com"
+                      className="border border-gray-700 rounded-xl py-2.5 px-4 text-sm focus:border-primary bg-transparent"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 ml-1">Teléfono (opcional)</label>
+                    <Input
+                      type="tel"
+                      value={newCustomerPhone}
+                      onChange={(e) => setNewCustomerPhone(e.target.value)}
+                      placeholder="+51 987 654 321"
+                      className="border border-gray-700 rounded-xl py-2.5 px-4 text-sm focus:border-primary bg-transparent"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    onClick={() => setShowCreateCustomer(false)}
+                    variant="ghost"
+                    className="flex-1 py-3 rounded-xl text-sm font-bold text-gray-500 hover:text-gray-200"
+                  >
+                    Volver
+                  </Button>
+                  <Button
+                    onClick={handleCreateCustomer}
+                    disabled={isCreatingCustomer}
+                    className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground font-bold neon-glow disabled:opacity-50"
+                  >
+                    {isCreatingCustomer ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                        Creando...
+                      </div>
+                    ) : (
+                      'Guardar Cliente'
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
           </motion.div>
         </motion.div>
       )}
@@ -527,7 +742,7 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
             </div>
 
             <div className="space-y-4">
-              <div className="flex justify-between items-center p-4 rounded-xl bg-gray-900/80 border border-gray-800">
+              <div className="flex justify-between items-center p-4 rounded-xl border border-gray-800">
                 <span className="text-xs text-gray-500">Precio catálogo</span>
                 <span className="font-bold line-through text-gray-500">
                   S/ {editingPriceItem.basePrice.toFixed(2)}
@@ -546,20 +761,36 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
                     min={0}
                     value={newPriceInput}
                     onChange={(e) => setNewPriceInput(e.target.value)}
-                    className="w-full bg-black/60 border border-gray-700 rounded-xl py-3 pl-10 pr-4 text-sm font-bold focus:border-primary"
+                    className="w-full border border-gray-700 rounded-xl py-3 pl-10 pr-4 text-sm font-bold focus:border-primary bg-transparent"
                     autoFocus
                   />
                 </div>
               </div>
 
-              {parseFloat(newPriceInput) < editingPriceItem.basePrice && parseFloat(newPriceInput) > 0 && (
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20">
-                  <Percent size={14} className="text-rose-400 shrink-0" />
-                  <span className="text-xs font-bold text-rose-400">
-                    Rebaja de {((editingPriceItem.basePrice - parseFloat(newPriceInput)) / editingPriceItem.basePrice * 100).toFixed(1)}%
-                  </span>
-                </div>
-              )}
+              {(() => {
+                const newPrice = parseFloat(newPriceInput)
+                if (isNaN(newPrice) || newPrice <= 0) return null
+                const diferencia = editingPriceItem.basePrice - newPrice
+                if (diferencia === 0) return null
+                if (diferencia > 0) {
+                  return (
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20">
+                      <ArrowDown size={14} className="text-rose-400 shrink-0" />
+                      <span className="text-xs font-bold text-rose-400">
+                        S/ {diferencia.toFixed(2)} de rebaja
+                      </span>
+                    </div>
+                  )
+                }
+                return (
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                    <ArrowUp size={14} className="text-emerald-400 shrink-0" />
+                    <span className="text-xs font-bold text-emerald-400">
+                      S/ {Math.abs(diferencia).toFixed(2)} de recargo
+                    </span>
+                  </div>
+                )
+              })()}
             </div>
 
             <div className="flex gap-3 mt-8">
