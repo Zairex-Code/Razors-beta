@@ -31,9 +31,16 @@ const STEPS = [
 interface ImportWizardProps {
   onClose: () => void
   onComplete: () => void
+  providers: string[]
+  products: Array<{
+    id: string
+    name: string
+    sku: string
+    category: string
+  }>
 }
 
-export function ImportWizard({ onClose, onComplete }: ImportWizardProps) {
+export function ImportWizard({ onClose, onComplete, providers, products }: ImportWizardProps) {
   const { draft, initDraft, updateBasicInfo, addProduct, removeProduct, updateProduct, addInternalCost, addExtraCost, removeCost, updateCost, addDocument, removeDocument, resetDraft, setStep } = useImportWizardStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -174,10 +181,10 @@ export function ImportWizard({ onClose, onComplete }: ImportWizardProps) {
         <div className="max-w-6xl mx-auto">
           <AnimatePresence mode="wait">
             {currentStep === 1 && (
-              <StepBasicInfo key="step1" />
+              <StepBasicInfo key="step1" providers={providers} />
             )}
             {currentStep === 2 && (
-              <StepProducts key="step2" />
+              <StepProducts key="step2" products={products} />
             )}
             {currentStep === 3 && (
               <StepDocuments key="step3" />
@@ -241,7 +248,7 @@ export function ImportWizard({ onClose, onComplete }: ImportWizardProps) {
   )
 }
 
-function StepBasicInfo() {
+function StepBasicInfo({ providers }: { providers: string[] }) {
   const { draft, updateBasicInfo } = useImportWizardStore()
   if (!draft) return null
 
@@ -264,13 +271,16 @@ function StepBasicInfo() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
             <div className="space-y-3">
               <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Nombre del Proveedor</label>
-              <Input
-                type="text"
+              <select
                 value={draft.provider}
                 onChange={(e) => updateBasicInfo({ provider: e.target.value })}
-                placeholder="e.g. Wahl Professional"
-                className="w-full glass-input rounded-2xl py-4 px-5 text-sm"
-              />
+                className="w-full glass-input rounded-2xl py-4 px-5 text-sm appearance-none cursor-pointer bg-background/20 focus:ring-2 focus:ring-primary/20 transition-all"
+              >
+                <option value="">Seleccionar proveedor...</option>
+                {providers.map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
             </div>
             <div className="space-y-3">
               <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Número de Factura Proforma (PI)</label>
@@ -312,24 +322,30 @@ function StepBasicInfo() {
   )
 }
 
-function StepProducts() {
+function StepProducts({ products }: { products: Array<{ id: string, name: string, sku: string, category: string }> }) {
   const { draft, addProduct, removeProduct, updateProduct, addInternalCost, removeCost, updateCost } = useImportWizardStore()
-  const [showAddProduct, setShowAddProduct] = useState(false)
-  const [newProduct, setNewProduct] = useState({ sku: '', name: '', quantity: 1, unitPriceUsd: 0 })
+  const [newProductId, setNewProductId] = useState('')
+  const [newQuantity, setNewQuantity] = useState(1)
+  const [newUnitPrice, setNewUnitPrice] = useState(0)
 
   if (!draft) return null
 
   const handleAddProduct = () => {
-    if (!newProduct.sku || !newProduct.name) return
+    if (!newProductId) return
+    const selectedProduct = products.find(p => p.id === newProductId)
+    if (!selectedProduct) return
+
     addProduct({
-      productId: crypto.randomUUID(),
-      sku: newProduct.sku,
-      name: newProduct.name,
-      quantity: newProduct.quantity,
-      unitPriceUsd: newProduct.unitPriceUsd
+      productId: selectedProduct.id,
+      sku: selectedProduct.sku,
+      name: selectedProduct.name,
+      category: selectedProduct.category,
+      quantity: newQuantity,
+      unitPriceUsd: newUnitPrice
     })
-    setNewProduct({ sku: '', name: '', quantity: 1, unitPriceUsd: 0 })
-    setShowAddProduct(false)
+    setNewProductId('')
+    setNewQuantity(1)
+    setNewUnitPrice(0)
   }
 
   const productsTotal = draft.products.reduce((acc, p) => acc + (p.quantity * p.unitPriceUsd), 0)
@@ -338,6 +354,8 @@ function StepProducts() {
     return acc + amountInUsd
   }, 0)
   const grandTotal = productsTotal + internalTotal
+
+  const selectedProductData = products.find(p => p.id === newProductId)
 
   return (
     <motion.div
@@ -349,23 +367,76 @@ function StepProducts() {
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-xl font-bold tracking-tight">Items de Factura Proforma</h3>
-          <p className="text-muted-foreground text-sm">Input the items as they appear in your provider&apos;s proforma.</p>
+          <p className="text-muted-foreground text-sm">Selecciona productos del inventario existente.</p>
         </div>
-        <Button
-          onClick={() => setShowAddProduct(true)}
-          className="flex items-center gap-2 px-6 py-3 rounded-xl bg-primary/10 text-primary border border-primary/30 font-bold text-sm tracking-tight neon-border hover:bg-primary/20 transition-all"
-        >
-          <Plus size={18} />
-          Agregar Producto
-        </Button>
+      </div>
+
+      <div className="glass-panel p-6 rounded-3xl border-border/30 space-y-4">
+        <h4 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Agregar Producto del Inventario</h4>
+        <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_auto] gap-4 items-end">
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Producto</label>
+            <select
+              value={newProductId}
+              onChange={(e) => {
+                setNewProductId(e.target.value)
+                setNewUnitPrice(0)
+              }}
+              className="w-full glass-input rounded-xl py-3 px-4 text-sm appearance-none cursor-pointer bg-background/20"
+            >
+              <option value="">Seleccionar producto...</option>
+              {products.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Cantidad</label>
+            <Input
+              type="number"
+              min={1}
+              value={newQuantity}
+              onChange={(e) => setNewQuantity(parseInt(e.target.value) || 1)}
+              className="glass-input rounded-xl py-3 px-4 text-sm font-bold"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Precio Unit. (USD)</label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
+              <Input
+                type="number"
+                step="0.01"
+                min={0}
+                value={newUnitPrice}
+                onChange={(e) => setNewUnitPrice(parseFloat(e.target.value) || 0)}
+                placeholder="0.00"
+                className="w-full glass-input rounded-xl py-3 pl-8 pr-4 text-sm font-bold"
+              />
+            </div>
+          </div>
+          <Button
+            onClick={handleAddProduct}
+            disabled={!newProductId}
+            className="bg-primary text-primary-foreground neon-glow hover:scale-[1.02] active:scale-[0.98] transition-all"
+          >
+            <Plus size={18} />
+          </Button>
+        </div>
+        {selectedProductData && (
+          <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
+            <span className="font-mono text-primary">{selectedProductData.sku}</span>
+            <span className="px-2 py-0.5 rounded-md bg-foreground/5 text-foreground/60 uppercase tracking-wider">{selectedProductData.category}</span>
+          </div>
+        )}
       </div>
 
       <div className="glass-panel rounded-3xl overflow-hidden border-border/30">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-foreground/5 text-muted-foreground text-[10px] uppercase tracking-[0.2em] font-bold">
-              <th className="px-6 py-4">SKU</th>
-              <th className="px-6 py-4">Nombre del Producto</th>
+              <th className="px-6 py-4">Producto</th>
+              <th className="px-6 py-4">SKU / Categoría</th>
               <th className="px-6 py-4 text-center">Cantidad</th>
               <th className="px-6 py-4 text-right">Precio Unit. (USD)</th>
               <th className="px-6 py-4 text-right">Total (USD)</th>
@@ -376,14 +447,18 @@ function StepProducts() {
             {draft.products.map((p) => (
               <tr key={p.productId} className="hover:bg-foreground/[0.02] transition-colors">
                 <td className="px-6 py-4">
-                  <span className="font-mono text-xs text-primary">{p.sku}</span>
+                  <span className="text-sm font-semibold">{p.name}</span>
                 </td>
                 <td className="px-6 py-4">
-                  <span className="text-sm font-semibold">{p.name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs text-primary">{p.sku}</span>
+                    <span className="px-2 py-0.5 rounded-md bg-foreground/5 text-[10px] uppercase tracking-wider text-muted-foreground">{p.category}</span>
+                  </div>
                 </td>
                 <td className="px-6 py-4 text-center">
                   <Input
                     type="number"
+                    min={1}
                     value={p.quantity}
                     onChange={(e) => updateProduct(p.productId, { quantity: parseInt(e.target.value) || 0 })}
                     className="bg-foreground/5 border border-border/50 rounded-lg py-1 px-2 text-sm font-bold w-20 text-center mx-auto"
@@ -394,6 +469,8 @@ function StepProducts() {
                     <span className="text-muted-foreground text-xs">$</span>
                     <Input
                       type="number"
+                      step="0.01"
+                      min={0}
                       value={p.unitPriceUsd}
                       onChange={(e) => updateProduct(p.productId, { unitPriceUsd: parseFloat(e.target.value) || 0 })}
                       className="bg-transparent border-none p-0 text-sm font-bold focus:ring-0 w-24 text-right"
@@ -418,41 +495,13 @@ function StepProducts() {
             {draft.products.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground text-sm">
-                  No hay productos agregados. Haz click en &quot;Agregar Producto&quot; para comenzar.
+                  No hay productos agregados. Selecciona productos del inventario para agregar a esta importación.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
-
-      {showAddProduct && (
-        <div className="glass-panel p-6 rounded-3xl border-border/30 space-y-4">
-          <h4 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Agregar Nuevo Producto</h4>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Input
-              placeholder="SKU (e.g. WH-CLP-SNR)"
-              value={newProduct.sku}
-              onChange={(e) => setNewProduct({ ...newProduct, sku: e.target.value })}
-              className="glass-input"
-            />
-            <Input
-              placeholder="Nombre del producto"
-              value={newProduct.name}
-              onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-              className="glass-input md:col-span-2"
-            />
-            <div className="flex items-center gap-2">
-              <Button onClick={handleAddProduct} size="sm" className="bg-primary text-primary-foreground neon-glow">
-                Agregar
-              </Button>
-              <Button onClick={() => setShowAddProduct(false)} variant="ghost" size="sm">
-                Cancelar
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="glass-panel p-6 rounded-3xl border-border/30 space-y-6">
         <div className="flex items-center gap-2 text-primary">

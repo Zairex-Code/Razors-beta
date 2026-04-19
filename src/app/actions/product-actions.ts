@@ -16,6 +16,18 @@ export async function getProducts() {
   })
 }
 
+export async function getProductsForImport() {
+  return prisma.product.findMany({
+    select: {
+      id: true,
+      name: true,
+      sku: true,
+      category: true
+    },
+    orderBy: { name: 'asc' }
+  })
+}
+
 export async function getProduct(id: string) {
   return prisma.product.findUnique({
     where: { id },

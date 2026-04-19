@@ -4,6 +4,7 @@ export interface ImportProduct {
   productId: string
   sku: string
   name: string
+  category: string
   quantity: number
   unitPriceUsd: number
 }

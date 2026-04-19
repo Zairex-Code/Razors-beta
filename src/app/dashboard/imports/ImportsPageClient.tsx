@@ -42,9 +42,16 @@ interface Import {
 
 interface ImportsPageClientProps {
   initialImports: Import[]
+  providers: string[]
+  products: Array<{
+    id: string
+    name: string
+    sku: string
+    category: string
+  }>
 }
 
-export default function ImportsPageClient({ initialImports }: ImportsPageClientProps) {
+export default function ImportsPageClient({ initialImports, providers, products }: ImportsPageClientProps) {
   const [imports, setImports] = useState<Import[]>(initialImports)
   const [isWizardOpen, setIsWizardOpen] = useState(false)
 
@@ -81,6 +88,8 @@ export default function ImportsPageClient({ initialImports }: ImportsPageClientP
         <ImportWizard
           onClose={() => setIsWizardOpen(false)}
           onComplete={handleWizardComplete}
+          providers={providers}
+          products={products}
         />
       )}
     </div>
