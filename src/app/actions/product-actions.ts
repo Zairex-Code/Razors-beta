@@ -6,7 +6,11 @@ import { revalidatePath } from 'next/cache'
 export async function getProducts() {
   return prisma.product.findMany({
     include: {
-      inventory: true
+      inventory: {
+        include: {
+          location: true
+        }
+      }
     },
     orderBy: { name: 'asc' }
   })
