@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'motion/react'
 import {
@@ -15,11 +15,14 @@ import {
   FileText,
   CheckCircle,
   Trash2,
+  Search,
+  Loader2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useImportWizardStore } from '@/stores/import-wizard-store'
 import { createImport } from '@/app/actions/import-actions'
+import { createProduct, searchProducts } from '@/app/actions/product-actions'
 
 const STEPS = [
   { step: 1, label: 'Info Basic & Docs' },
@@ -40,10 +43,283 @@ interface ImportWizardProps {
   }>
 }
 
+interface NewProductModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onCreated: (product: { id: string, name: string, sku: string, category: string }) => void
+}
+
+function NewProductModal({ isOpen, onClose, onCreated }: NewProductModalProps) {
+  const [sku, setSku] = useState('')
+  const [name, setName] = useState('')
+  const [category, setCategory] = useState('')
+  const [pricePen, setPricePen] = useState('')
+  const [isCreating, setIsCreating] = useState(false)
+
+  const handleCreate = async () => {
+    if (!sku || !name || !category || !pricePen) return
+    setIsCreating(true)
+    try {
+      const product = await createProduct({
+        sku,
+        name,
+        category,
+        pricePen: parseFloat(pricePen)
+      })
+      onCreated({ id: product.id, name: product.name, sku: product.sku, category: product.category })
+      setSku('')
+      setName('')
+      setCategory('')
+      setPricePen('')
+      onClose()
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/80 backdrop-blur-xl z-[200] flex items-center justify-center p-4"
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="glass-panel p-8 rounded-[2.5rem] border-border/30 relative w-full max-w-md"
+      >
+        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[60px] rounded-full -mr-16 -mt-16 pointer-events-none" />
+
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-bold tracking-tight">Agregar Producto Nuevo</h3>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-foreground/5 flex items-center justify-center text-foreground/40 hover:text-foreground hover:bg-foreground/10 transition-all cursor-pointer"
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          <p className="text-muted-foreground text-sm">Registra un producto que no existe en el inventario.</p>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">SKU</label>
+              <input
+                type="text"
+                value={sku}
+                onChange={(e) => setSku(e.target.value)}
+                placeholder="e.g. WH-CLP-SNR"
+                className="w-full glass-input rounded-xl py-3 px-4 text-sm cursor-pointer"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Nombre</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Nombre del producto"
+                className="w-full glass-input rounded-xl py-3 px-4 text-sm cursor-pointer"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Categoría</label>
+              <input
+                type="text"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                placeholder="e.g. Tools, Blades, Accessories"
+                className="w-full glass-input rounded-xl py-3 px-4 text-sm cursor-pointer"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Precio (PEN)</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">S/</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  value={pricePen}
+                  onChange={(e) => setPricePen(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full glass-input rounded-xl py-3 pl-10 pr-4 text-sm font-bold cursor-pointer"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 pt-2">
+            <button
+              onClick={onClose}
+              className="flex-1 py-3 rounded-xl text-sm font-bold text-foreground/40 hover:text-foreground hover:bg-foreground/5 transition-all cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleCreate}
+              disabled={!sku || !name || !category || !pricePen || isCreating}
+              className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm tracking-tight neon-glow hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {isCreating ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Creando...
+                </>
+              ) : (
+                <>
+                  <CheckCircle size={16} />
+                  Crear Producto
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+interface ProductComboboxProps {
+  value: string
+  onChange: (productId: string, data: { sku: string, name: string, category: string }) => void
+  products: Array<{ id: string, name: string, sku: string, category: string }>
+  disabledOptions?: string[]
+}
+
+function ProductCombobox({ value, onChange, products, disabledOptions = [] }: ProductComboboxProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const [results, setResults] = useState<Array<{ id: string, name: string, sku: string, category: string }>>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const selectedProduct = products.find(p => p.id === value)
+
+  useEffect(() => {
+    if (search.length < 2) {
+      setResults([])
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearching(true)
+      try {
+        const searchResults = await searchProducts(search)
+        setResults(searchResults.map(p => ({
+          id: p.id,
+          name: p.name,
+          sku: p.sku,
+          category: p.category
+        })))
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setIsSearching(false)
+      }
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [search])
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node) && !inputRef.current?.contains(e.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const handleSelect = (product: { id: string, name: string, sku: string, category: string }) => {
+    onChange(product.id, { sku: product.sku, name: product.name, category: product.category })
+    setSearch('')
+    setResults([])
+    setIsOpen(false)
+  }
+
+  return (
+    <div className="relative">
+      <input
+        ref={inputRef}
+        type="text"
+        value={isOpen ? search : selectedProduct?.name || ''}
+        onChange={(e) => {
+          setSearch(e.target.value)
+          setIsOpen(true)
+        }}
+        onFocus={() => setIsOpen(true)}
+        placeholder="Buscar producto..."
+        className="w-full glass-input rounded-xl py-2 px-3 text-sm cursor-pointer"
+      />
+      <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            ref={dropdownRef}
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            className="absolute z-50 w-full mt-1 glass-panel rounded-xl border-border/30 overflow-hidden"
+          >
+            {isSearching && (
+              <div className="p-3 text-center text-muted-foreground text-sm flex items-center justify-center gap-2">
+                <Loader2 size={14} className="animate-spin" />
+                Buscando...
+              </div>
+            )}
+            {!isSearching && results.length === 0 && search.length < 2 && (
+              <div className="p-3 text-center text-muted-foreground text-sm">
+                Escribe al menos 2 caracteres para buscar
+              </div>
+            )}
+            {!isSearching && results.length === 0 && search.length >= 2 && (
+              <div className="p-3 text-center text-muted-foreground text-sm">
+                No se encontraron productos
+              </div>
+            )}
+            {results.length > 0 && (
+              <div className="max-h-48 overflow-y-auto divide-y divide-border/20">
+                {results.map(product => (
+                  <button
+                    key={product.id}
+                    onClick={() => handleSelect(product)}
+                    className="w-full px-3 py-2.5 text-left hover:bg-foreground/5 transition-colors cursor-pointer flex items-center justify-between gap-2"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold">{product.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{product.sku} • {product.category}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 export function ImportWizard({ onClose, onComplete, providers, products }: ImportWizardProps) {
   const { draft, initDraft, updateBasicInfo, addProduct, removeProduct, updateProduct, addInternalCost, addExtraCost, removeCost, updateCost, addDocument, removeDocument, resetDraft, setStep } = useImportWizardStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isNewProductModalOpen, setIsNewProductModalOpen] = useState(false)
 
   const currentStep = draft?.step ?? 1
 
@@ -107,6 +383,17 @@ export function ImportWizard({ onClose, onComplete, providers, products }: Impor
     }
   }
 
+  const handleProductCreated = (product: { id: string, name: string, sku: string, category: string }) => {
+    addProduct({
+      productId: product.id,
+      sku: product.sku,
+      name: product.name,
+      category: product.category,
+      quantity: 1,
+      unitPriceUsd: 0
+    })
+  }
+
   if (!draft) {
     return (
       <motion.div
@@ -116,7 +403,7 @@ export function ImportWizard({ onClose, onComplete, providers, products }: Impor
         className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center"
       >
         <div className="text-center">
-          <Button onClick={handleInit} className="px-8 py-4 rounded-2xl bg-primary text-primary-foreground font-bold neon-glow">
+          <Button onClick={handleInit} className="px-8 py-4 rounded-2xl bg-primary text-primary-foreground font-bold neon-glow cursor-pointer">
             Iniciar Nueva Importación
           </Button>
         </div>
@@ -134,6 +421,12 @@ export function ImportWizard({ onClose, onComplete, providers, products }: Impor
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/10 blur-[150px] rounded-full -mr-48 -mt-48 pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-500/10 blur-[120px] rounded-full -ml-32 -mb-32 pointer-events-none" />
 
+      <NewProductModal
+        isOpen={isNewProductModalOpen}
+        onClose={() => setIsNewProductModalOpen(false)}
+        onCreated={handleProductCreated}
+      />
+
       <div className="relative z-10 p-8 border-b border-border/30 bg-background/40 backdrop-blur-md">
         <div className="max-w-6xl mx-auto flex justify-between items-center mb-8">
           <div>
@@ -142,7 +435,7 @@ export function ImportWizard({ onClose, onComplete, providers, products }: Impor
           </div>
           <button
             onClick={() => { resetDraft(); onClose() }}
-            className="w-10 h-10 rounded-full bg-foreground/5 flex items-center justify-center text-foreground/40 hover:text-foreground hover:bg-foreground/10 transition-all"
+            className="w-10 h-10 rounded-full bg-foreground/5 flex items-center justify-center text-foreground/40 hover:text-foreground hover:bg-foreground/10 transition-all cursor-pointer"
           >
             <X size={20} />
           </button>
@@ -184,7 +477,7 @@ export function ImportWizard({ onClose, onComplete, providers, products }: Impor
               <StepBasicInfo key="step1" providers={providers} />
             )}
             {currentStep === 2 && (
-              <StepProducts key="step2" products={products} />
+              <StepProducts key="step2" products={products} onOpenNewProductModal={() => setIsNewProductModalOpen(true)} />
             )}
             {currentStep === 3 && (
               <StepDocuments key="step3" />
@@ -208,7 +501,7 @@ export function ImportWizard({ onClose, onComplete, providers, products }: Impor
               <Button
                 onClick={handleBack}
                 variant="ghost"
-                className="px-8 py-4 rounded-2xl text-sm font-bold text-foreground/40 hover:text-foreground hover:bg-foreground/5 transition-all"
+                className="px-8 py-4 rounded-2xl text-sm font-bold text-foreground/40 hover:text-foreground hover:bg-foreground/5 transition-all cursor-pointer"
               >
                 <ChevronLeft size={18} className="mr-1" />
                 Atrás
@@ -217,7 +510,7 @@ export function ImportWizard({ onClose, onComplete, providers, products }: Impor
             {currentStep < 4 ? (
               <Button
                 onClick={handleNext}
-                className="px-12 py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-sm tracking-tight neon-glow hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2"
+                className="px-12 py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-sm tracking-tight neon-glow hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 cursor-pointer"
               >
                 Siguiente: Agregar Productos
                 <ChevronRight size={18} />
@@ -226,7 +519,7 @@ export function ImportWizard({ onClose, onComplete, providers, products }: Impor
               <Button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="px-12 py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-sm tracking-tight neon-glow hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 shadow-[0_0_30px_rgba(0,247,255,0.3)]"
+                className="px-12 py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-sm tracking-tight neon-glow hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 shadow-[0_0_30px_rgba(0,247,255,0.3)] cursor-pointer"
               >
                 {isSubmitting ? (
                   <>
@@ -289,7 +582,7 @@ function StepBasicInfo({ providers }: { providers: string[] }) {
                 value={draft.piNumber}
                 onChange={(e) => updateBasicInfo({ piNumber: e.target.value })}
                 placeholder="e.g. PI-2024-882"
-                className="w-full glass-input rounded-2xl py-4 px-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all"
+                className="w-full glass-input rounded-2xl py-4 px-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
               />
             </div>
             <div className="space-y-3">
@@ -311,7 +604,7 @@ function StepBasicInfo({ providers }: { providers: string[] }) {
                   value={draft.exchangeRate}
                   onChange={(e) => updateBasicInfo({ exchangeRate: parseFloat(e.target.value) || 3.8 })}
                   placeholder="3.75"
-                  className="w-full glass-input rounded-2xl py-4 pl-24 pr-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all"
+                  className="w-full glass-input rounded-2xl py-4 pl-24 pr-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
                 />
               </div>
             </div>
@@ -322,7 +615,7 @@ function StepBasicInfo({ providers }: { providers: string[] }) {
       <div className="flex justify-end">
         <button
           onClick={() => useImportWizardStore.getState().setStep(2)}
-          className="px-12 py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-sm tracking-tight neon-glow hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2"
+          className="px-12 py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-sm tracking-tight neon-glow hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 cursor-pointer"
         >
           Next: Add Products
           <ChevronRight size={18} />
@@ -332,14 +625,14 @@ function StepBasicInfo({ providers }: { providers: string[] }) {
   )
 }
 
-function StepProducts({ products }: { products: Array<{ id: string, name: string, sku: string, category: string }> }) {
+function StepProducts({ products, onOpenNewProductModal }: { products: Array<{ id: string, name: string, sku: string, category: string }>, onOpenNewProductModal: () => void }) {
   const { draft, addProduct, removeProduct, updateProduct, addInternalCost, removeCost, updateCost } = useImportWizardStore()
 
   if (!draft) return null
 
   const handleAddRow = () => {
     addProduct({
-      productId: '',
+      productId: `temp-${Date.now()}`,
       sku: '',
       name: '',
       category: '',
@@ -348,16 +641,13 @@ function StepProducts({ products }: { products: Array<{ id: string, name: string
     })
   }
 
-  const handleProductSelect = (productId: string, rowProductId: string) => {
-    const selectedProduct = products.find(p => p.id === rowProductId)
-    if (selectedProduct) {
-      updateProduct(productId, {
-        productId: selectedProduct.id,
-        sku: selectedProduct.sku,
-        name: selectedProduct.name,
-        category: selectedProduct.category
-      })
-    }
+  const handleProductSelect = (productId: string, data: { sku: string, name: string, category: string }) => {
+    updateProduct(productId, {
+      productId: data.name ? productId : '',
+      sku: data.sku,
+      name: data.name,
+      category: data.category
+    })
   }
 
   const productsTotal = draft.products.reduce((acc, p) => acc + (p.quantity * p.unitPriceUsd), 0)
@@ -380,11 +670,11 @@ function StepProducts({ products }: { products: Array<{ id: string, name: string
           <p className="text-muted-foreground text-sm">Input the items as they appear in your provider&apos;s proforma.</p>
         </div>
         <button
-          onClick={handleAddRow}
-          className="flex items-center gap-2 px-6 py-3 rounded-xl bg-primary/10 text-primary border border-primary/30 font-bold text-sm tracking-tight neon-border hover:bg-primary/20 transition-all"
+          onClick={onOpenNewProductModal}
+          className="flex items-center gap-2 px-6 py-3 rounded-xl bg-primary/10 text-primary border border-primary/30 font-bold text-sm tracking-tight neon-border hover:bg-primary/20 transition-all cursor-pointer"
         >
           <Plus size={18} />
-          Add Product Row
+          Agregar Producto Nuevo
         </button>
       </div>
 
@@ -404,18 +694,17 @@ function StepProducts({ products }: { products: Array<{ id: string, name: string
             {draft.products.map((p) => (
               <tr key={p.productId} className="hover:bg-foreground/[0.02] transition-colors">
                 <td className="px-6 py-4">
-                  <select
+                  <ProductCombobox
                     value={p.productId}
-                    onChange={(e) => handleProductSelect(p.productId, e.target.value)}
-                    className="w-full glass-input rounded-xl py-2 px-3 text-sm appearance-none cursor-pointer bg-background/20 focus:ring-2 focus:ring-primary/20 transition-all"
-                  >
-                    <option value="">Select product...</option>
-                    {products.map(prod => (
-                      <option key={prod.id} value={prod.id} disabled={draft.products.some(existing => existing.productId === prod.id && existing.productId !== p.productId)}>
-                        {prod.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(productId, data) => {
+                      if (productId.startsWith('temp-')) {
+                        updateProduct(p.productId, { productId, sku: data.sku, name: data.name, category: data.category })
+                      } else {
+                        handleProductSelect(p.productId, data)
+                      }
+                    }}
+                    products={products}
+                  />
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
@@ -433,9 +722,16 @@ function StepProducts({ products }: { products: Array<{ id: string, name: string
                   <input
                     type="number"
                     min={1}
-                    value={p.quantity}
-                    onChange={(e) => updateProduct(p.productId, { quantity: parseInt(e.target.value) || 0 })}
-                    className="bg-foreground/5 border border-border/50 rounded-lg py-1 px-2 text-sm font-bold w-20 text-center mx-auto focus:ring-1 focus:ring-primary/30"
+                    value={p.quantity || ''}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      if (val === '') {
+                        updateProduct(p.productId, { quantity: 1 })
+                      } else {
+                        updateProduct(p.productId, { quantity: parseInt(val) || 1 })
+                      }
+                    }}
+                    className="bg-foreground/5 border border-border/50 rounded-lg py-1 px-2 text-sm font-bold w-20 text-center mx-auto focus:ring-1 focus:ring-primary/30 cursor-pointer"
                   />
                 </td>
                 <td className="px-6 py-4 text-right">
@@ -445,9 +741,16 @@ function StepProducts({ products }: { products: Array<{ id: string, name: string
                       type="number"
                       step="0.01"
                       min={0}
-                      value={p.unitPriceUsd}
-                      onChange={(e) => updateProduct(p.productId, { unitPriceUsd: parseFloat(e.target.value) || 0 })}
-                      className="bg-transparent border-none p-0 text-sm font-bold focus:ring-0 w-24 text-right"
+                      value={p.unitPriceUsd || ''}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        if (val === '') {
+                          updateProduct(p.productId, { unitPriceUsd: 0 })
+                        } else {
+                          updateProduct(p.productId, { unitPriceUsd: parseFloat(val) || 0 })
+                        }
+                      }}
+                      className="bg-transparent border-none p-0 text-sm font-bold focus:ring-0 w-24 text-right cursor-pointer"
                     />
                   </div>
                 </td>
@@ -459,23 +762,24 @@ function StepProducts({ products }: { products: Array<{ id: string, name: string
                 <td className="px-6 py-4 text-center">
                   <button
                     onClick={() => removeProduct(p.productId)}
-                    className="p-2 rounded-lg hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition-all"
+                    className="p-2 rounded-lg hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition-all cursor-pointer"
                   >
                     <X size={16} />
                   </button>
                 </td>
               </tr>
             ))}
-            {draft.products.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground text-sm">
-                  No products added. Click &quot;Add Product Row&quot; to begin.
-                </td>
-              </tr>
-            )}
           </tbody>
         </table>
       </div>
+
+      <button
+        onClick={handleAddRow}
+        className="flex items-center gap-2 text-muted-foreground text-sm font-bold hover:text-primary transition-all cursor-pointer"
+      >
+        <Plus size={14} />
+        + Agregar fila
+      </button>
 
       <div className="glass-panel p-6 rounded-3xl border-border/30 space-y-6">
         <div className="flex items-center gap-2 text-primary">
@@ -493,7 +797,7 @@ function StepProducts({ products }: { products: Array<{ id: string, name: string
                   value={cost.description}
                   onChange={(e) => updateCost(cost.id, 'internal', { description: e.target.value })}
                   placeholder="e.g. Local Freight to Port"
-                  className="w-full glass-input rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all"
+                  className="w-full glass-input rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
                 />
               </div>
               <div className="space-y-2">
@@ -502,17 +806,26 @@ function StepProducts({ products }: { products: Array<{ id: string, name: string
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                   <input
                     type="number"
-                    value={cost.amount}
-                    onChange={(e) => updateCost(cost.id, 'internal', { amount: parseFloat(e.target.value) || 0 })}
+                    step="0.01"
+                    min={0}
+                    value={cost.amount || ''}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      if (val === '') {
+                        updateCost(cost.id, 'internal', { amount: 0 })
+                      } else {
+                        updateCost(cost.id, 'internal', { amount: parseFloat(val) || 0 })
+                      }
+                    }}
                     placeholder="0.00"
-                    className="w-full glass-input rounded-xl py-3 pl-8 pr-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 transition-all"
+                    className="w-full glass-input rounded-xl py-3 pl-8 pr-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
                   />
                 </div>
               </div>
               {draft.internalCosts.length > 1 && (
                 <button
                   onClick={() => removeCost(cost.id, 'internal')}
-                  className="p-3 rounded-xl hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition-all mb-0.5"
+                  className="p-3 rounded-xl hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition-all mb-0.5 cursor-pointer"
                 >
                   <X size={18} />
                 </button>
@@ -523,7 +836,7 @@ function StepProducts({ products }: { products: Array<{ id: string, name: string
 
         <button
           onClick={() => addInternalCost({ category: 'PROVIDER', description: '', amount: 0, currency: 'USD', exchangeRate: null, voucherUrl: null })}
-          className="flex items-center gap-2 text-primary font-bold text-sm tracking-tight hover:text-primary/80 transition-all drop-shadow-[0_0_10px_rgba(0,247,255,0.3)] w-fit"
+          className="flex items-center gap-2 text-primary font-bold text-sm tracking-tight hover:text-primary/80 transition-all drop-shadow-[0_0_10px_rgba(0,247,255,0.3)] w-fit cursor-pointer"
         >
           <Plus size={14} />
           + Add another provider cost
@@ -596,7 +909,7 @@ function StepDocuments() {
                     </div>
                     <button
                       onClick={() => removeDocument(doc.id)}
-                      className="p-1.5 hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition-all rounded-lg"
+                      className="p-1.5 hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition-all rounded-lg cursor-pointer"
                     >
                       <X size={14} />
                     </button>
@@ -642,73 +955,73 @@ function StepExtraCosts() {
               { label: '3. Mobility', icon: Truck, category: 'MOBILITY' as const }
             ].map((costCategory) => {
               const categoryCosts = draft.extraCosts.filter(c => c.category === costCategory.category)
-              const categoryTotal = categoryCosts.reduce((acc, c) => {
-                const amountInPen = c.currency === 'PEN' ? c.amount : c.amount * (c.exchangeRate ?? draft.exchangeRate)
-                return acc + amountInPen
-              }, 0)
 
               return (
                 <div key={costCategory.category} className="glass-card p-8 rounded-[2rem] border-border/20 hover:border-primary/30 transition-all group">
                   <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4 mb-2">
-                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-all duration-500">
-                          <costCategory.icon size={20} />
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-lg text-foreground">{costCategory.label}</h4>
-                        </div>
+                    <div className="flex items-center gap-4 mb-2">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-all duration-500">
+                        <costCategory.icon size={20} />
                       </div>
-                      <div className="text-right">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Total</p>
-                        <p className="text-xl font-black text-primary">S/ {categoryTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
+                      <div>
+                        <h4 className="font-bold text-lg text-foreground">{costCategory.label}</h4>
                       </div>
                     </div>
 
                     <div className="space-y-4">
                       {categoryCosts.map((cost) => (
-                        <div key={cost.id} className="glass-panel bg-foreground/[0.02] border-none rounded-xl p-4">
-                          <div className="flex items-center justify-between gap-4">
-                            <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
-                              <div className="space-y-1">
-                                <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">Date</p>
-                                <p className="text-sm font-semibold">{new Date().toLocaleDateString('es-PE')}</p>
-                              </div>
-                              <div className="space-y-1">
-                                <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">Description</p>
+                        <div key={cost.id} className="glass-panel bg-foreground/[0.02] border-none rounded-2xl p-4">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="space-y-1">
+                              <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">Date</p>
+                              <p className="text-sm font-semibold">{new Date().toLocaleDateString('es-PE')}</p>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">Description</p>
+                              <input
+                                type="text"
+                                value={cost.description}
+                                onChange={(e) => updateCost(cost.id, 'extra', { description: e.target.value })}
+                                placeholder="Payment description"
+                                className="glass-input text-sm py-2 w-full rounded-lg px-3 cursor-pointer"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">Amount</p>
+                              <div className="flex items-center gap-2">
+                                <select
+                                  value={cost.currency}
+                                  onChange={(e) => updateCost(cost.id, 'extra', { currency: e.target.value as 'USD' | 'PEN' })}
+                                  className="glass-input rounded-lg py-2 px-2 text-sm cursor-pointer"
+                                >
+                                  <option value="PEN">PEN</option>
+                                  <option value="USD">USD</option>
+                                </select>
                                 <input
-                                  type="text"
-                                  value={cost.description}
-                                  onChange={(e) => updateCost(cost.id, 'extra', { description: e.target.value })}
-                                  placeholder="Payment description"
-                                  className="glass-input text-sm py-2 w-full rounded-lg px-3"
+                                  type="number"
+                                  step="0.01"
+                                  min={0}
+                                  value={cost.amount || ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value
+                                    if (val === '') {
+                                      updateCost(cost.id, 'extra', { amount: 0 })
+                                    } else {
+                                      updateCost(cost.id, 'extra', { amount: parseFloat(val) || 0 })
+                                    }
+                                  }}
+                                  className="flex-1 glass-input text-sm py-2 font-bold rounded-lg px-3 cursor-pointer"
                                 />
                               </div>
-                              <div className="space-y-1">
-                                <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">Amount</p>
-                                <div className="flex items-center gap-2">
-                                  <select
-                                    value={cost.currency}
-                                    onChange={(e) => updateCost(cost.id, 'extra', { currency: e.target.value as 'USD' | 'PEN' })}
-                                    className="glass-input rounded-lg py-2 px-2 text-sm"
-                                  >
-                                    <option value="PEN">PEN</option>
-                                    <option value="USD">USD</option>
-                                  </select>
-                                  <input
-                                    type="number"
-                                    value={cost.amount}
-                                    onChange={(e) => updateCost(cost.id, 'extra', { amount: parseFloat(e.target.value) || 0 })}
-                                    className="flex-1 glass-input text-sm py-2 font-bold rounded-lg px-3"
-                                  />
-                                </div>
-                              </div>
                             </div>
+                          </div>
+                          <div className="flex justify-end mt-3">
                             <button
                               onClick={() => removeCost(cost.id, 'extra')}
-                              className="p-2 rounded-lg hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition-all"
+                              className="text-red-400/60 hover:text-red-400 font-bold text-xs tracking-tight transition-all flex items-center gap-1 cursor-pointer"
                             >
-                              <Trash2 size={16} />
+                              <Trash2 size={12} />
+                              Eliminar
                             </button>
                           </div>
                         </div>
@@ -717,7 +1030,7 @@ function StepExtraCosts() {
 
                     <button
                       onClick={() => addExtraCost({ category: costCategory.category, description: '', amount: 0, currency: 'PEN', exchangeRate: null, voucherUrl: null })}
-                      className="flex items-center gap-2 text-primary font-bold text-xs tracking-widest uppercase hover:text-primary/80 transition-all ml-2 group/add"
+                      className="flex items-center gap-2 text-primary font-bold text-xs tracking-widest uppercase hover:text-primary/80 transition-all ml-2 group/add cursor-pointer"
                     >
                       <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center group-hover/add:scale-110 transition-all">
                         <Plus size={14} />
