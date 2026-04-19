@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { toggleUserStatus, changeUserRole } from '@/app/actions/user-actions'
+import { toggleUserStatus, changeUserRole, createUserAction } from '@/app/actions/user-actions'
 import { ShieldAlert, UserPlus, Power, Users as UsersIcon } from 'lucide-react'
 import { Role } from '@prisma/client'
+import Swal from 'sweetalert2'
 
 type User = {
   id: string
@@ -18,6 +19,7 @@ export default function UsersPageClient({ initialUsers }: { initialUsers: User[]
   const [users, setUsers] = useState(initialUsers)
   const [isLoading, setIsLoading] = useState<string | null>(null)
   const [isAddingUser, setIsAddingUser] = useState(false)
+  const [isCreating, setIsCreating] = useState(false)
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'EMPLOYEE' as Role })
 
   const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
@@ -41,6 +43,60 @@ export default function UsersPageClient({ initialUsers }: { initialUsers: User[]
       ))
     } finally {
       setIsLoading(null)
+    }
+  }
+
+  const handleCreateUser = async () => {
+    if (!newUser.name || !newUser.email || !newUser.password) {
+      Swal.fire({
+        title: 'Missing fields',
+        text: 'Please fill in all fields.',
+        icon: 'warning',
+        background: '#0a0a0a',
+        color: '#ffffff',
+        confirmButtonColor: '#a855f7'
+      })
+      return
+    }
+
+    setIsCreating(true)
+    try {
+      const formData = new FormData()
+      formData.set('name', newUser.name)
+      formData.set('email', newUser.email)
+      formData.set('password', newUser.password)
+      formData.set('role', newUser.role)
+
+      await createUserAction(formData)
+
+      setIsAddingUser(false)
+      setNewUser({ name: '', email: '', password: '', role: 'EMPLOYEE' })
+
+      Swal.fire({
+        title: 'User Created',
+        text: `${newUser.name} has been added successfully.`,
+        icon: 'success',
+        background: '#0a0a0a',
+        color: '#ffffff',
+        confirmButtonColor: '#a855f7',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 2500
+      })
+
+      window.location.reload()
+    } catch (error: any) {
+      Swal.fire({
+        title: 'Error',
+        text: error.message || 'Failed to create user.',
+        icon: 'error',
+        background: '#0a0a0a',
+        color: '#ffffff',
+        confirmButtonColor: '#ef4444'
+      })
+    } finally {
+      setIsCreating(false)
     }
   }
 
@@ -225,12 +281,18 @@ export default function UsersPageClient({ initialUsers }: { initialUsers: User[]
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      setIsAddingUser(false)
-                    }}
-                    className="px-8 py-3 rounded-xl bg-purple-600 text-white font-bold text-sm tracking-tight hover:bg-purple-500 transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)]"
+                    onClick={handleCreateUser}
+                    disabled={isCreating}
+                    className="px-8 py-3 rounded-xl bg-purple-600 text-white font-bold text-sm tracking-tight hover:bg-purple-500 transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)] disabled:opacity-50 flex items-center gap-2"
                   >
-                    Create User
+                    {isCreating ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      'Create User'
+                    )}
                   </button>
                 </div>
               </form>

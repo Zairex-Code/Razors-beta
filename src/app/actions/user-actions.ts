@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { Role } from '@prisma/client'
 import { requireAdmin } from './auth-actions'
+import { getSupabaseAdmin } from '@/utils/supabase/admin'
 
 export async function getUsers() {
   return prisma.user.findMany({
@@ -57,6 +58,45 @@ export async function createUser(data: {
       email: data.email,
       password: data.password,
       role: data.role,
+      isActive: true
+    }
+  })
+
+  revalidatePath('/dashboard/users')
+  return user
+}
+
+export async function createUserAction(formData: FormData) {
+  await requireAdmin()
+
+  const name = formData.get('name') as string
+  const email = formData.get('email') as string
+  const password = formData.get('password') as string
+  const role = formData.get('role') as Role
+
+  if (!name || !email || !password || !role) {
+    throw new Error('All fields are required')
+  }
+
+  const supabaseAdmin = getSupabaseAdmin()
+  const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: { name, role }
+  })
+
+  if (authError) {
+    throw new Error(`Auth error: ${authError.message}`)
+  }
+
+  const user = await prisma.user.create({
+    data: {
+      id: authUser.user.id,
+      name,
+      email,
+      password,
+      role,
       isActive: true
     }
   })
