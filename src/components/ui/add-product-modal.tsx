@@ -32,6 +32,8 @@ function generateSku(): string {
 
 export function AddProductModal({ isOpen, onClose, onCreated }: AddProductModalProps) {
   const [name, setName] = useState('')
+  const [brand, setBrand] = useState('')
+  const [model, setModel] = useState('')
   const [category, setCategory] = useState('Otros')
   const [pricePen, setPricePen] = useState('')
   const [isCreating, setIsCreating] = useState(false)
@@ -44,11 +46,15 @@ export function AddProductModal({ isOpen, onClose, onCreated }: AddProductModalP
       const product = await createProduct({
         sku: autoSku,
         name,
+        brand: brand || undefined,
+        model: model || undefined,
         category,
         pricePen: parseFloat(pricePen)
       })
       onCreated({ id: product.id, name: product.name, sku: product.sku, category: product.category })
       setName('')
+      setBrand('')
+      setModel('')
       setCategory('Otros')
       setPricePen('')
       onClose()
@@ -100,6 +106,29 @@ export function AddProductModal({ isOpen, onClose, onCreated }: AddProductModalP
                 placeholder="Nombre del producto"
                 className="w-full glass-input rounded-xl py-3 px-4 text-sm"
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Marca</label>
+                <input
+                  type="text"
+                  value={brand}
+                  onChange={(e) => setBrand(e.target.value)}
+                  placeholder="Wahl, Babyliss..."
+                  className="w-full glass-input rounded-xl py-3 px-4 text-sm"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Modelo</label>
+                <input
+                  type="text"
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                  placeholder="Guía #2, Inalámbrica..."
+                  className="w-full glass-input rounded-xl py-3 px-4 text-sm"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">

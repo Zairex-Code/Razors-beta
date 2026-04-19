@@ -22,6 +22,8 @@ export async function getProductsForImport() {
     select: {
       id: true,
       name: true,
+      brand: true,
+      model: true,
       sku: true,
       category: true
     },
@@ -53,7 +55,9 @@ export async function searchProducts(query: string) {
       OR: [
         { name: { contains: query, mode: 'insensitive' } },
         { sku: { contains: query, mode: 'insensitive' } },
-        { category: { contains: query, mode: 'insensitive' } }
+        { category: { contains: query, mode: 'insensitive' } },
+        { brand: { contains: query, mode: 'insensitive' } },
+        { model: { contains: query, mode: 'insensitive' } }
       ]
     },
     orderBy: { name: 'asc' },
@@ -64,6 +68,8 @@ export async function searchProducts(query: string) {
 export async function createProduct(data: {
   sku: string
   name: string
+  brand?: string
+  model?: string
   category: string
   pricePen: number
 }) {
@@ -71,6 +77,8 @@ export async function createProduct(data: {
     data: {
       sku: data.sku,
       name: data.name,
+      brand: data.brand || null,
+      model: data.model || null,
       category: data.category,
       pricePen: data.pricePen
     }
@@ -114,6 +122,8 @@ export async function updateInventoryStock(
 
 export async function updateProduct(id: string, data: {
   name: string
+  brand?: string
+  model?: string
   category: string
   pricePen: number
 }) {
@@ -121,6 +131,8 @@ export async function updateProduct(id: string, data: {
     where: { id },
     data: {
       name: data.name,
+      brand: data.brand || null,
+      model: data.model || null,
       category: data.category,
       pricePen: data.pricePen
     }

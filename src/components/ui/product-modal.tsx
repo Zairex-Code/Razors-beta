@@ -14,6 +14,8 @@ interface Product {
   id: string
   sku: string
   name: string
+  brand?: string | null
+  model?: string | null
   category: string
   pricePen: number
 }
@@ -44,6 +46,8 @@ function generateSku(): string {
 
 export function ProductModal({ isOpen, onClose, mode, product, onCreated, onUpdated }: ProductModalProps) {
   const [name, setName] = useState('')
+  const [brand, setBrand] = useState('')
+  const [model, setModel] = useState('')
   const [category, setCategory] = useState('Otros')
   const [pricePen, setPricePen] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -51,10 +55,14 @@ export function ProductModal({ isOpen, onClose, mode, product, onCreated, onUpda
   useEffect(() => {
     if (mode === 'edit' && product) {
       setName(product.name)
+      setBrand(product.brand || '')
+      setModel(product.model || '')
       setCategory(product.category)
       setPricePen(product.pricePen.toString())
     } else {
       setName('')
+      setBrand('')
+      setModel('')
       setCategory('Otros')
       setPricePen('')
     }
@@ -69,6 +77,8 @@ export function ProductModal({ isOpen, onClose, mode, product, onCreated, onUpda
         const newProduct = await createProduct({
           sku: autoSku,
           name,
+          brand: brand || undefined,
+          model: model || undefined,
           category,
           pricePen: parseFloat(pricePen)
         })
@@ -76,10 +86,12 @@ export function ProductModal({ isOpen, onClose, mode, product, onCreated, onUpda
       } else if (mode === 'edit' && product) {
         const updated = await updateProduct(product.id, {
           name,
+          brand: brand || undefined,
+          model: model || undefined,
           category,
           pricePen: parseFloat(pricePen)
         })
-        onUpdated({ ...product, name: updated.name, category: updated.category, pricePen: updated.pricePen })
+        onUpdated({ ...product, name: updated.name, brand: updated.brand, model: updated.model, category: updated.category, pricePen: updated.pricePen })
       }
       onClose()
     } catch (err) {
@@ -128,7 +140,7 @@ export function ProductModal({ isOpen, onClose, mode, product, onCreated, onUpda
             {mode === 'create' ? 'Registra un producto que no existe en el inventario.' : `Editando: ${product?.sku}`}
           </p>
 
-          <div className="space-y-4">
+            <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Nombre</label>
               <input
@@ -139,6 +151,29 @@ export function ProductModal({ isOpen, onClose, mode, product, onCreated, onUpda
                 placeholder="Nombre del producto"
                 className="w-full glass-input rounded-xl py-3 px-4 text-sm"
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Marca</label>
+                <input
+                  type="text"
+                  value={brand}
+                  onChange={(e) => setBrand(e.target.value)}
+                  placeholder="Wahl, Babyliss..."
+                  className="w-full glass-input rounded-xl py-3 px-4 text-sm"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Modelo</label>
+                <input
+                  type="text"
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                  placeholder="Guía #2, Inalámbrica..."
+                  className="w-full glass-input rounded-xl py-3 px-4 text-sm"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">

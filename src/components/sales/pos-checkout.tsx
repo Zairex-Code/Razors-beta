@@ -23,6 +23,7 @@ import Swal from 'sweetalert2'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { usePOSStore, type CartItem } from '@/stores/pos-store'
+import { productName } from '@/lib/utils'
 import { createSale, generateInvoiceNumber } from '@/app/actions/sale-actions'
 import { createCustomer } from '@/app/actions/customer-actions'
 
@@ -30,6 +31,8 @@ interface Product {
   id: string
   sku: string
   name: string
+  brand?: string | null
+  model?: string | null
   category: string
   pricePen: number
   inventory: Array<{
@@ -116,6 +119,8 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
         productId: product.id,
         sku: product.sku,
         name: product.name,
+        brand: product.brand,
+        model: product.model,
         quantity: 1,
         unitPrice: product.pricePen,
         basePrice: product.pricePen
@@ -401,7 +406,7 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
 
                   <div className="space-y-1 flex-1">
                     <p className="text-[9px] font-mono text-primary/50 uppercase tracking-wider">{product.sku}</p>
-                    <h4 className="font-bold text-sm leading-tight line-clamp-2 text-gray-100">{product.name}</h4>
+                    <h4 className="font-bold text-sm leading-tight line-clamp-2 text-gray-100">{productName(product)}</h4>
                     <p className="text-[9px] text-gray-500 uppercase tracking-wider">{product.category}</p>
                   </div>
 
@@ -525,7 +530,7 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1 min-w-0 mr-2">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <p className="font-bold text-xs text-gray-100 line-clamp-1">{item.name}</p>
+                      <p className="font-bold text-xs text-gray-100 line-clamp-1">{productName(item)}</p>
                       {item.hasDiscount && (
                         <span className="flex items-center gap-0.5 text-[8px] font-bold text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded uppercase shrink-0">
                           <Percent size={8} />

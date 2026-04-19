@@ -5,6 +5,8 @@ export interface CartItem {
   productId: string
   sku: string
   name: string
+  brand?: string | null
+  model?: string | null
   quantity: number
   unitPrice: number
   basePrice: number

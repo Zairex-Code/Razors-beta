@@ -30,6 +30,8 @@ model Product {
   id          String       @id @default(uuid())
   sku         String       @unique
   name        String
+  brand       String?
+  model       String?
   category    String
   pricePen    Float
   isActive    Boolean      @default(true)

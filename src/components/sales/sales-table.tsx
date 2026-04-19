@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { cn } from '@/lib/utils'
+import { cn, productName } from '@/lib/utils'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import {
@@ -27,6 +27,8 @@ interface SaleItem {
   product: {
     id: string
     name: string
+    brand?: string | null
+    model?: string | null
     sku: string
   }
 }
@@ -314,7 +316,7 @@ export function SalesTable({ sales }: SalesTableProps) {
                                       )}>
                                         <td className="px-4 py-3">
                                           <div className="flex items-center gap-2">
-                                            <span className="font-medium">{item.product.name}</span>
+                                            <span className="font-medium">{productName(item.product)}</span>
                                             {item.hasDiscount && (
                                               <span className="flex items-center gap-0.5 text-[8px] font-bold text-rose-400 bg-rose-500/10 px-1 py-0.5 rounded uppercase">
                                                 <Percent size={8} />

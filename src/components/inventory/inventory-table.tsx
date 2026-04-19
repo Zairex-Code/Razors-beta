@@ -14,11 +14,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ProductModal } from '@/components/ui/product-modal'
 import { deleteProduct } from '@/app/actions/product-actions'
+import { productName } from '@/lib/utils'
 
 interface InventoryItem {
   id: string
   sku: string
   name: string
+  brand?: string | null
+  model?: string | null
   category: string
   pricePen: number
   inventory: Array<{
@@ -58,7 +61,9 @@ export function InventoryTable({ products, locations }: InventoryTableProps) {
     (product) =>
       product.name.toLowerCase().includes(search.toLowerCase()) ||
       product.sku.toLowerCase().includes(search.toLowerCase()) ||
-      product.category.toLowerCase().includes(search.toLowerCase())
+      product.category.toLowerCase().includes(search.toLowerCase()) ||
+      (product.brand?.toLowerCase().includes(search.toLowerCase())) ||
+      (product.model?.toLowerCase().includes(search.toLowerCase()))
   )
 
   const getTotalStock = (product: InventoryItem) => {
@@ -224,7 +229,7 @@ export function InventoryTable({ products, locations }: InventoryTableProps) {
                   </div>
 
                   <div className="col-span-4 relative z-10">
-                    <span className="font-bold text-sm tracking-tight">{product.name}</span>
+                    <span className="font-bold text-sm tracking-tight">{productName(product)}</span>
                   </div>
 
                   <div className="col-span-2 relative z-10">
