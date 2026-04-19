@@ -398,7 +398,7 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
         </div>
       </div>
 
-      <div className="col-span-1 h-full flex flex-col bg-black/80 backdrop-blur-xl border-l border-gray-800">
+      <div className="col-span-1 h-full flex flex-col bg-black/60 backdrop-blur-xl border-l border-gray-800">
         <div className="p-6 border-b border-gray-800 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-3">
             <ShoppingCart size={20} className="text-primary" />
