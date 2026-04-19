@@ -264,59 +264,69 @@ function StepBasicInfo({ providers }: { providers: string[] }) {
 
         <div className="max-w-2xl mx-auto space-y-12 py-8">
           <div className="text-center space-y-2">
-            <h3 className="text-2xl font-bold tracking-tight">Información Básica de Importación</h3>
+            <h3 className="text-2xl font-bold tracking-tight">Basic Import Information</h3>
             <p className="text-muted-foreground text-sm">Provide the core details to initialize the import tracking.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
             <div className="space-y-3">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Nombre del Proveedor</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Provider Name</label>
               <select
                 value={draft.provider}
                 onChange={(e) => updateBasicInfo({ provider: e.target.value })}
-                className="w-full glass-input rounded-2xl py-4 px-5 text-sm appearance-none cursor-pointer bg-background/20 focus:ring-2 focus:ring-primary/20 transition-all"
+                className="w-full glass-input rounded-2xl py-4 px-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer bg-background/20"
               >
-                <option value="">Seleccionar proveedor...</option>
+                <option value="" disabled selected>Select a provider...</option>
                 {providers.map(p => (
                   <option key={p} value={p}>{p}</option>
                 ))}
               </select>
             </div>
             <div className="space-y-3">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Número de Factura Proforma (PI)</label>
-              <Input
+              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Proforma Invoice (PI) Number</label>
+              <input
                 type="text"
                 value={draft.piNumber}
                 onChange={(e) => updateBasicInfo({ piNumber: e.target.value })}
                 placeholder="e.g. PI-2024-882"
-                className="w-full glass-input rounded-2xl py-4 px-5 text-sm"
+                className="w-full glass-input rounded-2xl py-4 px-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all"
               />
             </div>
             <div className="space-y-3">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Fecha Estimada de Llegada (ETA)</label>
-              <Input
+              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Estimated Arrival (ETA)</label>
+              <input
                 type="date"
                 value={draft.eta ?? ''}
                 onChange={(e) => updateBasicInfo({ eta: e.target.value || null })}
-                className="w-full glass-input rounded-2xl py-4 px-5 text-sm cursor-pointer"
+                className="w-full glass-input rounded-2xl py-4 px-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
               />
             </div>
             <div className="space-y-3">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Tipo de Cambio Inicial</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Initial Exchange Rate</label>
               <div className="relative">
                 <span className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground text-[10px] font-bold">PEN/USD</span>
-                <Input
+                <input
                   type="number"
                   step="0.01"
                   value={draft.exchangeRate}
                   onChange={(e) => updateBasicInfo({ exchangeRate: parseFloat(e.target.value) || 3.8 })}
                   placeholder="3.75"
-                  className="w-full glass-input rounded-2xl py-4 pl-24 pr-5 text-sm"
+                  className="w-full glass-input rounded-2xl py-4 pl-24 pr-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all"
                 />
               </div>
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="flex justify-end">
+        <button
+          onClick={() => useImportWizardStore.getState().setStep(2)}
+          className="px-12 py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-sm tracking-tight neon-glow hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2"
+        >
+          Next: Add Products
+          <ChevronRight size={18} />
+        </button>
       </div>
     </motion.div>
   )
@@ -324,28 +334,30 @@ function StepBasicInfo({ providers }: { providers: string[] }) {
 
 function StepProducts({ products }: { products: Array<{ id: string, name: string, sku: string, category: string }> }) {
   const { draft, addProduct, removeProduct, updateProduct, addInternalCost, removeCost, updateCost } = useImportWizardStore()
-  const [newProductId, setNewProductId] = useState('')
-  const [newQuantity, setNewQuantity] = useState(1)
-  const [newUnitPrice, setNewUnitPrice] = useState(0)
 
   if (!draft) return null
 
-  const handleAddProduct = () => {
-    if (!newProductId) return
-    const selectedProduct = products.find(p => p.id === newProductId)
-    if (!selectedProduct) return
-
+  const handleAddRow = () => {
     addProduct({
-      productId: selectedProduct.id,
-      sku: selectedProduct.sku,
-      name: selectedProduct.name,
-      category: selectedProduct.category,
-      quantity: newQuantity,
-      unitPriceUsd: newUnitPrice
+      productId: '',
+      sku: '',
+      name: '',
+      category: '',
+      quantity: 1,
+      unitPriceUsd: 0
     })
-    setNewProductId('')
-    setNewQuantity(1)
-    setNewUnitPrice(0)
+  }
+
+  const handleProductSelect = (productId: string, rowProductId: string) => {
+    const selectedProduct = products.find(p => p.id === rowProductId)
+    if (selectedProduct) {
+      updateProduct(productId, {
+        productId: selectedProduct.id,
+        sku: selectedProduct.sku,
+        name: selectedProduct.name,
+        category: selectedProduct.category
+      })
+    }
   }
 
   const productsTotal = draft.products.reduce((acc, p) => acc + (p.quantity * p.unitPriceUsd), 0)
@@ -354,8 +366,6 @@ function StepProducts({ products }: { products: Array<{ id: string, name: string
     return acc + amountInUsd
   }, 0)
   const grandTotal = productsTotal + internalTotal
-
-  const selectedProductData = products.find(p => p.id === newProductId)
 
   return (
     <motion.div
@@ -366,108 +376,72 @@ function StepProducts({ products }: { products: Array<{ id: string, name: string
     >
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-xl font-bold tracking-tight">Items de Factura Proforma</h3>
-          <p className="text-muted-foreground text-sm">Selecciona productos del inventario existente.</p>
+          <h3 className="text-xl font-bold tracking-tight">Proforma Invoice Items</h3>
+          <p className="text-muted-foreground text-sm">Input the items as they appear in your provider&apos;s proforma.</p>
         </div>
-      </div>
-
-      <div className="glass-panel p-6 rounded-3xl border-border/30 space-y-4">
-        <h4 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Agregar Producto del Inventario</h4>
-        <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_auto] gap-4 items-end">
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Producto</label>
-            <select
-              value={newProductId}
-              onChange={(e) => {
-                setNewProductId(e.target.value)
-                setNewUnitPrice(0)
-              }}
-              className="w-full glass-input rounded-xl py-3 px-4 text-sm appearance-none cursor-pointer bg-background/20"
-            >
-              <option value="">Seleccionar producto...</option>
-              {products.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Cantidad</label>
-            <Input
-              type="number"
-              min={1}
-              value={newQuantity}
-              onChange={(e) => setNewQuantity(parseInt(e.target.value) || 1)}
-              className="glass-input rounded-xl py-3 px-4 text-sm font-bold"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Precio Unit. (USD)</label>
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
-              <Input
-                type="number"
-                step="0.01"
-                min={0}
-                value={newUnitPrice}
-                onChange={(e) => setNewUnitPrice(parseFloat(e.target.value) || 0)}
-                placeholder="0.00"
-                className="w-full glass-input rounded-xl py-3 pl-8 pr-4 text-sm font-bold"
-              />
-            </div>
-          </div>
-          <Button
-            onClick={handleAddProduct}
-            disabled={!newProductId}
-            className="bg-primary text-primary-foreground neon-glow hover:scale-[1.02] active:scale-[0.98] transition-all"
-          >
-            <Plus size={18} />
-          </Button>
-        </div>
-        {selectedProductData && (
-          <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
-            <span className="font-mono text-primary">{selectedProductData.sku}</span>
-            <span className="px-2 py-0.5 rounded-md bg-foreground/5 text-foreground/60 uppercase tracking-wider">{selectedProductData.category}</span>
-          </div>
-        )}
+        <button
+          onClick={handleAddRow}
+          className="flex items-center gap-2 px-6 py-3 rounded-xl bg-primary/10 text-primary border border-primary/30 font-bold text-sm tracking-tight neon-border hover:bg-primary/20 transition-all"
+        >
+          <Plus size={18} />
+          Add Product Row
+        </button>
       </div>
 
       <div className="glass-panel rounded-3xl overflow-hidden border-border/30">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-foreground/5 text-muted-foreground text-[10px] uppercase tracking-[0.2em] font-bold">
-              <th className="px-6 py-4">Producto</th>
-              <th className="px-6 py-4">SKU / Categoría</th>
-              <th className="px-6 py-4 text-center">Cantidad</th>
-              <th className="px-6 py-4 text-right">Precio Unit. (USD)</th>
+              <th className="px-6 py-4">Product</th>
+              <th className="px-6 py-4">SKU / Category</th>
+              <th className="px-6 py-4 text-center">Quantity</th>
+              <th className="px-6 py-4 text-right">Unit Price (USD)</th>
               <th className="px-6 py-4 text-right">Total (USD)</th>
-              <th className="px-6 py-4 text-center">Acciones</th>
+              <th className="px-6 py-4 text-center">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/20">
             {draft.products.map((p) => (
               <tr key={p.productId} className="hover:bg-foreground/[0.02] transition-colors">
                 <td className="px-6 py-4">
-                  <span className="text-sm font-semibold">{p.name}</span>
+                  <select
+                    value={p.productId}
+                    onChange={(e) => handleProductSelect(p.productId, e.target.value)}
+                    className="w-full glass-input rounded-xl py-2 px-3 text-sm appearance-none cursor-pointer bg-background/20 focus:ring-2 focus:ring-primary/20 transition-all"
+                  >
+                    <option value="">Select product...</option>
+                    {products.map(prod => (
+                      <option key={prod.id} value={prod.id} disabled={draft.products.some(existing => existing.productId === prod.id && existing.productId !== p.productId)}>
+                        {prod.name}
+                      </option>
+                    ))}
+                  </select>
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs text-primary">{p.sku}</span>
-                    <span className="px-2 py-0.5 rounded-md bg-foreground/5 text-[10px] uppercase tracking-wider text-muted-foreground">{p.category}</span>
+                    {p.sku ? (
+                      <>
+                        <span className="font-mono text-xs text-primary">{p.sku}</span>
+                        <span className="px-2 py-0.5 rounded-md bg-foreground/5 text-[10px] uppercase tracking-wider text-muted-foreground">{p.category}</span>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">—</span>
+                    )}
                   </div>
                 </td>
                 <td className="px-6 py-4 text-center">
-                  <Input
+                  <input
                     type="number"
                     min={1}
                     value={p.quantity}
                     onChange={(e) => updateProduct(p.productId, { quantity: parseInt(e.target.value) || 0 })}
-                    className="bg-foreground/5 border border-border/50 rounded-lg py-1 px-2 text-sm font-bold w-20 text-center mx-auto"
+                    className="bg-foreground/5 border border-border/50 rounded-lg py-1 px-2 text-sm font-bold w-20 text-center mx-auto focus:ring-1 focus:ring-primary/30"
                   />
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex items-center justify-end gap-1">
                     <span className="text-muted-foreground text-xs">$</span>
-                    <Input
+                    <input
                       type="number"
                       step="0.01"
                       min={0}
@@ -495,7 +469,7 @@ function StepProducts({ products }: { products: Array<{ id: string, name: string
             {draft.products.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground text-sm">
-                  No hay productos agregados. Selecciona productos del inventario para agregar a esta importación.
+                  No products added. Click &quot;Add Product Row&quot; to begin.
                 </td>
               </tr>
             )}
@@ -506,71 +480,54 @@ function StepProducts({ products }: { products: Array<{ id: string, name: string
       <div className="glass-panel p-6 rounded-3xl border-border/30 space-y-6">
         <div className="flex items-center gap-2 text-primary">
           <Truck size={18} />
-          <h4 className="text-sm font-bold uppercase tracking-widest">Costos Internos del Proveedor (e.g., Flete Local)</h4>
+          <h4 className="text-sm font-bold uppercase tracking-widest">Provider Internal Costs (e.g., Local Freight)</h4>
         </div>
 
         <div className="space-y-4">
-          {draft.internalCosts.map((cost) => (
-            <div key={cost.id} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-6 items-end">
+          {draft.internalCosts.map((cost, idx) => (
+            <div key={cost.id} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-6 items-end">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Descripción</label>
-                <Input
+                {idx === 0 && <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Cost Description</label>}
+                <input
                   type="text"
                   value={cost.description}
                   onChange={(e) => updateCost(cost.id, 'internal', { description: e.target.value })}
-                  placeholder="e.g. Flete Local al Puerto"
-                  className="w-full glass-input rounded-xl py-3 px-4 text-sm"
+                  placeholder="e.g. Local Freight to Port"
+                  className="w-full glass-input rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Monto</label>
-                <div className="flex items-center gap-2">
-                  <select
-                    value={cost.currency}
-                    onChange={(e) => updateCost(cost.id, 'internal', { currency: e.target.value as 'USD' | 'PEN' })}
-                    className="glass-input rounded-xl py-3 px-2 text-sm"
-                  >
-                    <option value="USD">USD</option>
-                    <option value="PEN">PEN</option>
-                  </select>
-                  <Input
+                {idx === 0 && <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Amount (USD)</label>}
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                  <input
                     type="number"
                     value={cost.amount}
                     onChange={(e) => updateCost(cost.id, 'internal', { amount: parseFloat(e.target.value) || 0 })}
                     placeholder="0.00"
-                    className="flex-1 glass-input rounded-xl py-3 px-4 text-sm font-bold"
+                    className="w-full glass-input rounded-xl py-3 pl-8 pr-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 transition-all"
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Tipo de Cambio</label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={cost.exchangeRate ?? draft.exchangeRate}
-                  onChange={(e) => updateCost(cost.id, 'internal', { exchangeRate: parseFloat(e.target.value) || undefined })}
-                  placeholder="3.75"
-                  className="w-full glass-input rounded-xl py-3 px-4 text-sm"
-                />
-              </div>
-              <button
-                onClick={() => removeCost(cost.id, 'internal')}
-                className="p-3 rounded-xl hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition-all mb-0.5"
-              >
-                <X size={18} />
-              </button>
+              {draft.internalCosts.length > 1 && (
+                <button
+                  onClick={() => removeCost(cost.id, 'internal')}
+                  className="p-3 rounded-xl hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition-all mb-0.5"
+                >
+                  <X size={18} />
+                </button>
+              )}
             </div>
           ))}
         </div>
 
-        <Button
+        <button
           onClick={() => addInternalCost({ category: 'PROVIDER', description: '', amount: 0, currency: 'USD', exchangeRate: null, voucherUrl: null })}
-          variant="ghost"
           className="flex items-center gap-2 text-primary font-bold text-sm tracking-tight hover:text-primary/80 transition-all drop-shadow-[0_0_10px_rgba(0,247,255,0.3)] w-fit"
         >
           <Plus size={14} />
-          + Agregar otro costo del proveedor
-        </Button>
+          + Add another provider cost
+        </button>
       </div>
 
       <div className="flex flex-col md:flex-row justify-between items-center gap-6 pt-6">
@@ -579,12 +536,12 @@ function StepProducts({ products }: { products: Array<{ id: string, name: string
             <DollarSign size={28} />
           </div>
           <div>
-            <p className="text-[10px] text-primary uppercase tracking-[0.2em] font-black mb-1">Total General Proforma (USD)</p>
+            <p className="text-[10px] text-primary uppercase tracking-[0.2em] font-black mb-1">Grand Total Proforma (USD)</p>
             <div className="flex items-baseline gap-2">
               <p className="text-3xl font-black text-foreground tracking-tighter">
                 ${grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
-              <span className="text-[10px] text-muted-foreground font-bold uppercase">Total Productos + Costos Internos</span>
+              <span className="text-[10px] text-muted-foreground font-bold uppercase">Total Products + Provider Costs</span>
             </div>
           </div>
         </div>
@@ -610,8 +567,8 @@ function StepDocuments() {
 
         <div className="space-y-10">
           <div>
-            <h3 className="text-xl font-bold tracking-tight mb-2">Documentación de Importación</h3>
-            <p className="text-muted-foreground text-sm">Sube cualquier archivo relacionado: PDFs, Imágenes, Excel, Videos.</p>
+            <h3 className="text-xl font-bold tracking-tight mb-2">Import Documentation</h3>
+            <p className="text-muted-foreground text-sm">Upload any related file: PDFs, Images, Excel, Videos.</p>
           </div>
 
           <div className="space-y-8">
@@ -622,14 +579,14 @@ function StepDocuments() {
                   <Upload size={32} />
                 </div>
                 <div className="text-center">
-                  <p className="text-lg font-bold text-foreground mb-2">Arrastra y Suelta</p>
-                  <p className="text-sm text-muted-foreground">Cualquier archivo: PDFs, Imágenes, Excel, Videos</p>
+                  <p className="text-lg font-bold text-foreground mb-2">Universal Drag & Drop</p>
+                  <p className="text-sm text-muted-foreground">Any related file: PDFs, Images, Excel, Videos</p>
                 </div>
               </div>
             </div>
 
             <div className="space-y-4">
-              <h4 className="text-sm font-bold uppercase tracking-widest text-muted-foreground ml-1">Archivos Subidos</h4>
+              <h4 className="text-sm font-bold uppercase tracking-widest text-muted-foreground ml-1">Uploaded Files</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {draft.documents.map((doc) => (
                   <div key={doc.id} className="glass-panel py-3 px-4 rounded-xl flex items-center justify-between border-border/20 bg-foreground/[0.02]">
@@ -646,7 +603,7 @@ function StepDocuments() {
                   </div>
                 ))}
                 {draft.documents.length === 0 && (
-                  <p className="text-sm text-muted-foreground">No hay archivos subidos.</p>
+                  <p className="text-sm text-muted-foreground">No files uploaded.</p>
                 )}
               </div>
             </div>
@@ -674,8 +631,8 @@ function StepExtraCosts() {
 
         <div className="space-y-10">
           <div>
-            <h3 className="text-xl font-bold tracking-tight mb-2">Costos Extra Logísticos</h3>
-            <p className="text-muted-foreground text-sm">Registra todos los gastos adicionales en PEN para calcular el costo landed final.</p>
+            <h3 className="text-xl font-bold tracking-tight mb-2">Logistical Extra Costs</h3>
+            <p className="text-muted-foreground text-sm">Register all additional expenses in PEN to calculate the final landed cost.</p>
           </div>
 
           <div className="flex flex-col gap-8">
@@ -714,21 +671,21 @@ function StepExtraCosts() {
                           <div className="flex items-center justify-between gap-4">
                             <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
                               <div className="space-y-1">
-                                <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">Fecha</p>
+                                <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">Date</p>
                                 <p className="text-sm font-semibold">{new Date().toLocaleDateString('es-PE')}</p>
                               </div>
                               <div className="space-y-1">
-                                <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">Descripción</p>
-                                <Input
+                                <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">Description</p>
+                                <input
                                   type="text"
                                   value={cost.description}
                                   onChange={(e) => updateCost(cost.id, 'extra', { description: e.target.value })}
-                                  placeholder="Descripción del pago"
-                                  className="glass-input text-sm py-2"
+                                  placeholder="Payment description"
+                                  className="glass-input text-sm py-2 w-full rounded-lg px-3"
                                 />
                               </div>
                               <div className="space-y-1">
-                                <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">Monto</p>
+                                <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">Amount</p>
                                 <div className="flex items-center gap-2">
                                   <select
                                     value={cost.currency}
@@ -738,11 +695,11 @@ function StepExtraCosts() {
                                     <option value="PEN">PEN</option>
                                     <option value="USD">USD</option>
                                   </select>
-                                  <Input
+                                  <input
                                     type="number"
                                     value={cost.amount}
                                     onChange={(e) => updateCost(cost.id, 'extra', { amount: parseFloat(e.target.value) || 0 })}
-                                    className="flex-1 glass-input text-sm py-2 font-bold"
+                                    className="flex-1 glass-input text-sm py-2 font-bold rounded-lg px-3"
                                   />
                                 </div>
                               </div>
@@ -765,7 +722,7 @@ function StepExtraCosts() {
                       <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center group-hover/add:scale-110 transition-all">
                         <Plus size={14} />
                       </div>
-                      + Agregar otro pago
+                      + Add another payment
                     </button>
                   </div>
                 </div>
