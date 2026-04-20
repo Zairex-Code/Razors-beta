@@ -52,8 +52,26 @@ export async function createUser(data: {
 }) {
   await requireAdmin()
 
+  const supabaseAdmin = getSupabaseAdmin()
+
+  const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    email: data.email,
+    password: data.password,
+    email_confirm: true,
+    user_metadata: { name: data.name, role: data.role }
+  })
+
+  if (authError) {
+    throw new Error(`Error al crear usuario en Auth: ${authError.message}`)
+  }
+
+  if (!authUser?.user?.id) {
+    throw new Error('No se recibió ID del usuario de Supabase Auth')
+  }
+
   const user = await prisma.user.create({
     data: {
+      id: authUser.user.id,
       name: data.name,
       email: data.email,
       password: data.password,
@@ -75,10 +93,11 @@ export async function createUserAction(formData: FormData) {
   const role = formData.get('role') as Role
 
   if (!name || !email || !password || !role) {
-    throw new Error('All fields are required')
+    throw new Error('Todos los campos son requeridos')
   }
 
   const supabaseAdmin = getSupabaseAdmin()
+
   const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email,
     password,
@@ -87,7 +106,11 @@ export async function createUserAction(formData: FormData) {
   })
 
   if (authError) {
-    throw new Error(`Auth error: ${authError.message}`)
+    throw new Error(`Error al crear usuario en Auth: ${authError.message}`)
+  }
+
+  if (!authUser?.user?.id) {
+    throw new Error('No se recibió ID del usuario de Supabase Auth')
   }
 
   const user = await prisma.user.create({
@@ -103,6 +126,32 @@ export async function createUserAction(formData: FormData) {
 
   revalidatePath('/dashboard/users')
   return user
+}
+
+export async function deleteUserAction(userId: string) {
+  await requireAdmin()
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId }
+  })
+
+  if (!user) {
+    throw new Error('Usuario no encontrado en la base de datos')
+  }
+
+  await prisma.user.delete({
+    where: { id: userId }
+  })
+
+  const supabaseAdmin = getSupabaseAdmin()
+  const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+
+  if (authError) {
+    console.error(`Error al eliminar usuario de Supabase Auth: ${authError.message}`)
+  }
+
+  revalidatePath('/dashboard/users')
+  return { success: true }
 }
 
 export async function getUserById(userId: string) {
