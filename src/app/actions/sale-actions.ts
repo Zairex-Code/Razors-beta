@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { SaleStatus } from '@prisma/client'
 import { requireAuth, requireBossOrAdmin } from './auth-actions'
+import { uploadFileToStorageAdmin } from '@/lib/storage'
+import { roundCurrency } from '@/utils/math'
 
 export async function getSales(options: {
   status?: SaleStatus
@@ -81,48 +83,75 @@ export async function createSale(data: {
 }) {
   await requireAuth()
 
-  const sale = await prisma.sale.create({
-    data: {
-      invoiceNumber: data.invoiceNumber,
-      customerId: data.customerId,
-      userId: data.userId,
-      locationId: data.locationId,
-      totalAmount: data.totalAmount,
-      status: data.status,
-      paymentMethod: data.paymentMethod,
-      isDelivery: data.isDelivery,
-      deliveryCost: data.deliveryCost,
-      items: {
-        create: data.items.map(item => ({
-          productId: item.productId,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          basePrice: item.basePrice,
-          hasDiscount: item.hasDiscount,
-          discountPct: item.discountPct,
-          subtotal: item.subtotal
-        }))
-      }
-    },
-    include: { items: true }
-  })
+  const result = await prisma.$transaction(async (tx) => {
+    for (const item of data.items) {
+      const inventory = await tx.inventory.findUnique({
+        where: {
+          productId_locationId: {
+            productId: item.productId,
+            locationId: data.locationId
+          }
+        }
+      })
 
-  for (const item of data.items) {
-    await prisma.inventory.update({
-      where: {
-        productId_locationId: {
-          productId: item.productId,
-          locationId: data.locationId
+      if (!inventory) {
+        throw new Error(`Stock no encontrado para el producto.`)
+      }
+
+      if (inventory.stock < item.quantity) {
+        const product = await tx.product.findUnique({
+          where: { id: item.productId },
+          select: { name: true }
+        })
+        throw new Error(`Venta cancelada: El stock de "${product?.name || item.productId}" cambió mientras procesabas el pago. Stock disponible: ${inventory.stock}`)
+      }
+    }
+
+    const sale = await tx.sale.create({
+      data: {
+        invoiceNumber: data.invoiceNumber,
+        customerId: data.customerId,
+        userId: data.userId,
+        locationId: data.locationId,
+        totalAmount: roundCurrency(data.totalAmount),
+        status: data.status,
+        paymentMethod: data.paymentMethod,
+        isDelivery: data.isDelivery,
+        deliveryCost: roundCurrency(data.deliveryCost),
+        items: {
+          create: data.items.map(item => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            unitPrice: roundCurrency(item.unitPrice),
+            basePrice: roundCurrency(item.basePrice),
+            hasDiscount: item.hasDiscount,
+            discountPct: roundCurrency(item.discountPct),
+            subtotal: roundCurrency(item.subtotal)
+          }))
         }
       },
-      data: {
-        stock: { decrement: item.quantity }
-      }
+      include: { items: true }
     })
-  }
+
+    for (const item of data.items) {
+      await tx.inventory.update({
+        where: {
+          productId_locationId: {
+            productId: item.productId,
+            locationId: data.locationId
+          }
+        },
+        data: {
+          stock: { decrement: item.quantity }
+        }
+      })
+    }
+
+    return sale
+  })
 
   revalidatePath('/dashboard/sales')
-  return sale
+  return result
 }
 
 export async function voidSale(saleId: string) {
@@ -174,4 +203,72 @@ export async function generateInvoiceNumber() {
     : 0
 
   return `FV-${String(lastNumber + 1).padStart(8, '0')}`
+}
+
+export async function updateSaleStatusAction(saleId: string, newStatus: 'PAID' | 'PENDING') {
+  await requireAuth()
+
+  const sale = await prisma.sale.findUnique({
+    where: { id: saleId }
+  })
+
+  if (!sale) {
+    throw new Error('Venta no encontrada')
+  }
+
+  if (sale.status === 'VOID') {
+    throw new Error('No se puede cambiar el estado de una venta anulada')
+  }
+
+  await prisma.sale.update({
+    where: { id: saleId },
+    data: { status: newStatus }
+  })
+
+  revalidatePath('/dashboard/sales')
+}
+
+export async function uploadSaleVoucherAction(saleId: string, formData: FormData) {
+  await requireAuth()
+
+  const file = formData.get('voucher') as File | null
+
+  if (!file) {
+    throw new Error('No se encontró ningún archivo')
+  }
+
+  const sale = await prisma.sale.findUnique({
+    where: { id: saleId }
+  })
+
+  if (!sale) {
+    throw new Error('Venta no encontrada')
+  }
+
+  const voucherUrl = await uploadFileToStorageAdmin(
+    'vouchers',
+    'sales',
+    file,
+    `sale_${saleId}_${file.name}`
+  )
+
+  await prisma.sale.update({
+    where: { id: saleId },
+    data: { voucherUrl }
+  })
+
+  revalidatePath('/dashboard/sales')
+
+  return { success: true, voucherUrl }
+}
+
+export async function deleteSaleVoucherAction(saleId: string) {
+  await requireAuth()
+
+  await prisma.sale.update({
+    where: { id: saleId },
+    data: { voucherUrl: null }
+  })
+
+  revalidatePath('/dashboard/sales')
 }

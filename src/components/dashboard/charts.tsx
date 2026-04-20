@@ -50,7 +50,18 @@ export function RevenueChart({ data }: RevenueChartProps) {
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="#00f7ff" opacity={0.1} vertical={false} />
         <XAxis dataKey="date" stroke="#00f7ff" fontSize={12} tickLine={false} axisLine={{ stroke: '#00f7ff', strokeOpacity: 0.3 }} />
-        <YAxis stroke="#00f7ff" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `S/${(v/1000).toFixed(0)}k`} />
+        <YAxis
+              width={80}
+              stroke="#00f7ff"
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(v) => {
+                if (v >= 1000000) return `S/ ${(v/1000000).toFixed(1)}M`
+                if (v >= 1000) return `S/ ${(v/1000).toFixed(0)}k`
+                return `S/ ${v}`
+              }}
+            />
         <ChartTooltip content={<ChartTooltipContent indicator="dot" />} />
         <ChartLegend content={<ChartLegendContent />} />
         <Area type="monotone" dataKey="revenue" stroke="#00f7ff" strokeWidth={2} fill="url(#gradientRevenue)" />

@@ -221,3 +221,73 @@
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary);
 }
+
+@media print {
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+
+  html, body {
+    background: white !important;
+    color: black !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  .dashboard-content {
+    display: none !important;
+  }
+
+  .printable-template {
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  .glass-panel,
+  .glass-card,
+  .glass-input {
+    background: white !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .neon-glow,
+  .neon-border {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  button, a, input, select, textarea {
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  .no-print,
+  .hide-print,
+  [data-hide-print="true"] {
+    display: none !important;
+  }
+
+  * {
+    visibility: visible !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  table {
+    break-inside: auto;
+  }
+
+  tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+}
