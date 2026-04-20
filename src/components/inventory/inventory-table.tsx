@@ -39,12 +39,18 @@ interface Location {
   name: string
 }
 
+interface ProductOptions {
+  brands: string[]
+  categories: string[]
+}
+
 interface InventoryTableProps {
   products: InventoryItem[]
   locations: Location[]
+  productOptions?: ProductOptions
 }
 
-export function InventoryTable({ products, locations }: InventoryTableProps) {
+export function InventoryTable({ products, locations, productOptions }: InventoryTableProps) {
   const [search, setSearch] = useState('')
   const [expandedProductId, setExpandedProductId] = useState<string | null>(null)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
@@ -199,13 +205,15 @@ export function InventoryTable({ products, locations }: InventoryTableProps) {
         <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/5 blur-[120px] rounded-full -mr-48 -mt-48 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-blue-500/5 blur-[100px] rounded-full -ml-32 -mb-32 pointer-events-none" />
 
-        <div className="relative z-10 space-y-4">
+          <div className="relative z-10 space-y-4">
           <div className="grid grid-cols-12 px-8 py-4 text-muted-foreground text-[10px] uppercase tracking-[0.25em] font-bold">
             <div className="col-span-2">SKU</div>
-            <div className="col-span-4">Producto</div>
-            <div className="col-span-2">Categoría</div>
-            <div className="col-span-2 text-right">Precio (PEN)</div>
-            <div className="col-span-2 text-right">Stock Total</div>
+            <div className="col-span-3">Producto</div>
+            <div className="col-span-2">Marca</div>
+            <div className="col-span-2">Modelo</div>
+            <div className="col-span-1">Categoría</div>
+            <div className="col-span-1 text-right">Precio</div>
+            <div className="col-span-1 text-right">Stock</div>
           </div>
 
           {filteredProducts.map((product) => {
@@ -228,27 +236,45 @@ export function InventoryTable({ products, locations }: InventoryTableProps) {
                     <span className="font-mono text-xs text-primary">{product.sku}</span>
                   </div>
 
-                  <div className="col-span-4 relative z-10">
-                    <span className="font-bold text-sm tracking-tight">{productName(product)}</span>
+                  <div className="col-span-3 relative z-10">
+                    <span className="font-bold text-sm tracking-tight line-clamp-2">{product.name}</span>
                   </div>
 
                   <div className="col-span-2 relative z-10">
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-foreground/5 border border-border/30 text-muted-foreground">
+                    <span className={cn(
+                      "text-xs text-gray-400 truncate block",
+                      !product.brand && "italic text-gray-600"
+                    )}>
+                      {product.brand || '—'}
+                    </span>
+                  </div>
+
+                  <div className="col-span-2 relative z-10">
+                    <span className={cn(
+                      "text-xs text-gray-400 truncate block",
+                      !product.model && "italic text-gray-600"
+                    )}>
+                      {product.model || '—'}
+                    </span>
+                  </div>
+
+                  <div className="col-span-1 relative z-10">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-lg bg-foreground/5 border border-border/30 text-muted-foreground truncate block">
                       {product.category}
                     </span>
                   </div>
 
-                  <div className="col-span-2 text-right relative z-10">
-                    <span className="text-sm font-bold text-foreground/80">
+                  <div className="col-span-1 text-right relative z-10">
+                    <span className="text-sm font-bold text-foreground/80 whitespace-nowrap">
                       S/ {product.pricePen.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
 
-                  <div className="col-span-2 text-right relative z-10">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-foreground/5 border border-border/30">
+                  <div className="col-span-1 text-right relative z-10">
+                    <div className="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-foreground/5 border border-border/30">
                       <div
                         className={cn(
-                          "w-1.5 h-1.5 rounded-full",
+                          "w-1.5 h-1.5 rounded-full shrink-0",
                           totalStock < 10 ? "bg-rose-500 neon-glow" : "bg-emerald-500"
                         )}
                       />
@@ -366,6 +392,8 @@ export function InventoryTable({ products, locations }: InventoryTableProps) {
         onClose={() => setIsAddModalOpen(false)}
         onCreated={handleCreated}
         onUpdated={() => {}}
+        brands={productOptions?.brands || []}
+        categories={productOptions?.categories || []}
       />
 
       <ProductModal
@@ -378,6 +406,8 @@ export function InventoryTable({ products, locations }: InventoryTableProps) {
         }}
         onCreated={() => {}}
         onUpdated={handleUpdated}
+        brands={productOptions?.brands || []}
+        categories={productOptions?.categories || []}
       />
     </div>
   )

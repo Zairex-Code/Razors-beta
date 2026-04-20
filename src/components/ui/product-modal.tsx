@@ -9,6 +9,7 @@ import {
   Edit3,
 } from 'lucide-react'
 import { createProduct, updateProduct } from '@/app/actions/product-actions'
+import { CreatableSelect } from '@/components/ui/creatable-select'
 
 interface Product {
   id: string
@@ -27,6 +28,8 @@ interface ProductModalProps {
   product?: Product
   onCreated: (product: { id: string, name: string, sku: string, category: string }) => void
   onUpdated: (product: Product) => void
+  brands?: string[]
+  categories?: string[]
 }
 
 const CATEGORIES = ['Máquinas', 'Cuchillas', 'Cosméticos', 'Muebles', 'Peines', 'Otros']
@@ -44,7 +47,7 @@ function generateSku(): string {
   return sku
 }
 
-export function ProductModal({ isOpen, onClose, mode, product, onCreated, onUpdated }: ProductModalProps) {
+export function ProductModal({ isOpen, onClose, mode, product, onCreated, onUpdated, brands = [], categories = [] }: ProductModalProps) {
   const [name, setName] = useState('')
   const [brand, setBrand] = useState('')
   const [model, setModel] = useState('')
@@ -156,12 +159,12 @@ export function ProductModal({ isOpen, onClose, mode, product, onCreated, onUpda
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Marca</label>
-                <input
-                  type="text"
+                <CreatableSelect
                   value={brand}
-                  onChange={(e) => setBrand(e.target.value)}
-                  placeholder="Wahl, Babyliss..."
-                  className="w-full glass-input rounded-xl py-3 px-4 text-sm"
+                  onChange={setBrand}
+                  options={brands}
+                  placeholder="Seleccionar marca..."
+                  className="w-full"
                 />
               </div>
               <div className="space-y-2">
@@ -178,16 +181,13 @@ export function ProductModal({ isOpen, onClose, mode, product, onCreated, onUpda
 
             <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Categoría</label>
-              <select
-                required
+              <CreatableSelect
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full glass-input rounded-xl py-3 px-4 text-sm bg-[#0a0a0a] text-white appearance-none"
-              >
-                {CATEGORIES.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
+                onChange={setCategory}
+                options={categories}
+                placeholder="Seleccionar categoría..."
+                className="w-full"
+              />
             </div>
 
             <div className="space-y-2">

@@ -169,15 +169,15 @@ export function SalesTable({ sales }: SalesTableProps) {
         <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-blue-500/5 blur-[100px] rounded-full -ml-32 -mb-32 pointer-events-none" />
 
         <div className="relative z-10 overflow-x-auto">
-          <table className="w-full text-left border-separate border-spacing-y-2 min-w-[800px]">
+          <table className="w-full text-left border-collapse min-w-[800px]">
             <thead>
               <tr className="text-muted-foreground text-[10px] uppercase tracking-[0.25em] font-bold">
-                <th className="px-6 py-4">Fecha</th>
-                <th className="px-6 py-4">Factura / Ticket</th>
-                <th className="px-6 py-4">Cliente</th>
-                <th className="px-6 py-4">Sede</th>
-                <th className="px-6 py-4">Estado</th>
-                <th className="px-6 py-4 text-right">Total</th>
+                <th className="text-left p-4">Fecha</th>
+                <th className="text-left p-4">Factura / Ticket</th>
+                <th className="text-left p-4">Cliente</th>
+                <th className="text-center p-4">Sede</th>
+                <th className="text-center p-4">Estado</th>
+                <th className="text-right p-4">Total</th>
               </tr>
             </thead>
             <tbody>
@@ -187,21 +187,19 @@ export function SalesTable({ sales }: SalesTableProps) {
                 const discounted = hasDiscountedItems(sale)
 
                 return (
-                  <tr key={sale.id}>
-                    <td
-                      colSpan={6}
-                      className="p-0"
+                  <>
+                    <tr
+                      key={sale.id}
+                      onClick={() => setExpandedSaleId(isExpanded ? null : sale.id)}
+                      className={cn(
+                        "cursor-pointer transition-all duration-300",
+                        isExpanded
+                          ? "bg-primary/5"
+                          : "bg-foreground/[0.03] hover:bg-foreground/[0.06]"
+                      )}
                     >
-                      <div
-                        onClick={() => setExpandedSaleId(isExpanded ? null : sale.id)}
-                        className={cn(
-                          "grid grid-cols-12 items-center rounded-2xl cursor-pointer transition-all duration-300",
-                          isExpanded
-                            ? "bg-primary/5 border border-primary/40"
-                            : "bg-foreground/[0.03] border border-transparent hover:border-primary/20 hover:bg-foreground/[0.06]"
-                        )}
-                      >
-                        <div className="px-6 py-4 col-span-1 flex items-center gap-2">
+                      <td className="text-left p-4">
+                        <div className="flex items-center gap-2">
                           <span className="text-sm font-medium text-foreground/80">
                             {format(new Date(sale.date), 'dd/MM/yyyy', { locale: es })}
                           </span>
@@ -209,218 +207,222 @@ export function SalesTable({ sales }: SalesTableProps) {
                             <Percent size={12} className="text-rose-400" />
                           )}
                         </div>
-                        <div className="px-6 py-4 col-span-2">
-                          <span className="font-mono text-xs font-bold text-primary">
-                            {sale.invoiceNumber}
-                          </span>
-                        </div>
-                        <div className="px-6 py-4 col-span-3">
-                          <span className="font-semibold text-sm">{sale.customer.name}</span>
-                        </div>
-                        <div className="px-6 py-4 col-span-2">
-                          <span className="text-sm text-foreground/60">{sale.location.name}</span>
-                        </div>
-                        <div className="px-6 py-4 col-span-2">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={cn(
-                                "text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg border",
-                                sale.status === 'PAID'
-                                  ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
-                                  : sale.status === 'PENDING'
-                                  ? "bg-amber-500/10 border-amber-500/20 text-amber-500"
-                                  : "bg-rose-500/10 border-rose-500/20 text-rose-500"
-                              )}
-                            >
-                              {sale.status === 'PAID' ? 'Pagada' : sale.status === 'PENDING' ? 'Pendiente' : 'Anulada'}
-                            </span>
-                            {discounted && sale.status === 'PAID' && (
-                              <span className="text-[8px] font-bold text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                                Rebaja
-                              </span>
+                      </td>
+                      <td className="text-left p-4">
+                        <span className="font-mono text-xs font-bold text-primary">
+                          {sale.invoiceNumber}
+                        </span>
+                      </td>
+                      <td className="text-left p-4">
+                        <span className="font-semibold text-sm">{sale.customer.name}</span>
+                      </td>
+                      <td className="text-center p-4">
+                        <span className="text-sm text-foreground/60">{sale.location.name}</span>
+                      </td>
+                      <td className="text-center p-4">
+                        <div className="flex items-center justify-center gap-2">
+                          <span
+                            className={cn(
+                              "text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg border",
+                              sale.status === 'PAID'
+                                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                                : sale.status === 'PENDING'
+                                ? "bg-amber-500/10 border-amber-500/20 text-amber-500"
+                                : "bg-rose-500/10 border-rose-500/20 text-rose-500"
                             )}
-                          </div>
-                        </div>
-                        <div className="px-6 py-4 col-span-2 text-right">
-                          <span className={cn(
-                            "text-sm font-black",
-                            sale.status === 'VOID' ? "text-foreground/30 line-through" : "text-foreground"
-                          )}>
-                            S/ {sale.totalAmount.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                          >
+                            {sale.status === 'PAID' ? 'Pagada' : sale.status === 'PENDING' ? 'Pendiente' : 'Anulada'}
                           </span>
+                          {discounted && sale.status === 'PAID' && (
+                            <span className="text-[8px] font-bold text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                              Rebaja
+                            </span>
+                          )}
                         </div>
-                      </div>
+                      </td>
+                      <td className="text-right p-4">
+                        <span className={cn(
+                          "text-sm font-black",
+                          sale.status === 'VOID' ? "text-foreground/30 line-through" : "text-foreground"
+                        )}>
+                          S/ {sale.totalAmount.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                        </span>
+                      </td>
+                    </tr>
 
-                      {isExpanded && (
-                        <div className="px-8 pb-8 pt-2">
-                          <div className="w-full glass-panel rounded-b-2xl border-x border-b border-primary/40 bg-primary/[0.02] p-6 space-y-6">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="text-xs text-muted-foreground">
-                                  Vendido por <span className="font-bold text-foreground">{sale.user.name}</span>
-                                </p>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span
-                                  className={cn(
-                                    "text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg border",
-                                    sale.paymentMethod === 'YAPE'
-                                      ? "bg-purple-500/10 border-purple-500/20 text-purple-400"
-                                      : sale.paymentMethod === 'PLIN'
-                                      ? "bg-cyan-500/10 border-cyan-500/20 text-cyan-400"
-                                      : sale.paymentMethod === 'TRANSFERENCIA'
-                                      ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
-                                      : sale.paymentMethod === 'TARJETA'
-                                      ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
-                                      : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-                                  )}
-                                >
-                                  {sale.paymentMethod}
-                                </span>
-                                {sale.isDelivery && (
-                                  <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg border bg-orange-500/10 border-orange-500/20 text-orange-400">
-                                    Delivery
+                    {isExpanded && (
+                      <tr>
+                        <td colSpan={6} className="p-0">
+                          <div className="px-8 pb-8 pt-2">
+                            <div className="w-full glass-panel rounded-b-2xl border-x border-b border-primary/40 bg-primary/[0.02] p-6 space-y-6">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="text-xs text-muted-foreground">
+                                    Vendido por <span className="font-bold text-foreground">{sale.user.name}</span>
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className={cn(
+                                      "text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg border",
+                                      sale.paymentMethod === 'YAPE'
+                                        ? "bg-purple-500/10 border-purple-500/20 text-purple-400"
+                                        : sale.paymentMethod === 'PLIN'
+                                        ? "bg-cyan-500/10 border-cyan-500/20 text-cyan-400"
+                                        : sale.paymentMethod === 'TRANSFERENCIA'
+                                        ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
+                                        : sale.paymentMethod === 'TARJETA'
+                                        ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                                        : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                                    )}
+                                  >
+                                    {sale.paymentMethod}
                                   </span>
+                                  {sale.isDelivery && (
+                                    <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg border bg-orange-500/10 border-orange-500/20 text-orange-400">
+                                      Delivery
+                                    </span>
+                                  )}
+                                </div>
+                                {discounted && (
+                                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20">
+                                    <Percent size={14} className="text-rose-400" />
+                                    <span className="text-xs font-bold text-rose-400">
+                                      Esta venta incluye rebajas
+                                    </span>
+                                  </div>
                                 )}
                               </div>
-                              {discounted && (
-                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20">
-                                  <Percent size={14} className="text-rose-400" />
-                                  <span className="text-xs font-bold text-rose-400">
-                                    Esta venta incluye rebajas
-                                  </span>
-                                </div>
-                              )}
-                            </div>
 
-                            <div>
-                              <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary mb-4">
-                                Resumen del Pedido
-                              </h4>
-                              <div className="overflow-hidden rounded-xl border border-border/30 bg-foreground/[0.02]">
-                                <table className="w-full text-left text-xs">
-                                  <thead>
-                                    <tr className="bg-foreground/[0.03] text-muted-foreground font-bold uppercase tracking-wider">
-                                      <th className="px-4 py-3">Producto</th>
-                                      <th className="px-4 py-3 text-center">Cantidad</th>
-                                      <th className="px-4 py-3 text-right">Precio Base</th>
-                                      <th className="px-4 py-3 text-right">Precio Final</th>
-                                      <th className="px-4 py-3 text-right">Subtotal</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-border/20">
-                                    {sale.items.map((item) => (
-                                      <tr key={item.id} className={cn(
-                                        "relative",
-                                        item.hasDiscount && "bg-rose-500/5"
-                                      )}>
-                                        <td className="px-4 py-3">
-                                          <div className="flex items-center gap-2">
-                                            <span className="font-medium">{productName(item.product)}</span>
-                                            {item.hasDiscount && (
-                                              <span className="flex items-center gap-0.5 text-[8px] font-bold text-rose-400 bg-rose-500/10 px-1 py-0.5 rounded uppercase">
-                                                <Percent size={8} />
-                                                -{item.discountPct.toFixed(0)}%
+                              <div>
+                                <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary mb-4">
+                                  Resumen del Pedido
+                                </h4>
+                                <div className="overflow-hidden rounded-xl border border-border/30 bg-foreground/[0.02]">
+                                  <table className="w-full text-left text-xs">
+                                    <thead>
+                                      <tr className="bg-foreground/[0.03] text-muted-foreground font-bold uppercase tracking-wider">
+                                        <th className="px-4 py-3">Producto</th>
+                                        <th className="px-4 py-3 text-center">Cantidad</th>
+                                        <th className="px-4 py-3 text-right">Precio Base</th>
+                                        <th className="px-4 py-3 text-right">Precio Final</th>
+                                        <th className="px-4 py-3 text-right">Subtotal</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-border/20">
+                                      {sale.items.map((item) => (
+                                        <tr key={item.id} className={cn(
+                                          "relative",
+                                          item.hasDiscount && "bg-rose-500/5"
+                                        )}>
+                                          <td className="px-4 py-3">
+                                            <div className="flex items-center gap-2">
+                                              <span className="font-medium">{productName(item.product)}</span>
+                                              {item.hasDiscount && (
+                                                <span className="flex items-center gap-0.5 text-[8px] font-bold text-rose-400 bg-rose-500/10 px-1 py-0.5 rounded uppercase">
+                                                  <Percent size={8} />
+                                                  -{item.discountPct.toFixed(0)}%
+                                                </span>
+                                              )}
+                                            </div>
+                                          </td>
+                                          <td className="px-4 py-3 text-center">{item.quantity}</td>
+                                          <td className="px-4 py-3 text-right">
+                                            {item.hasDiscount ? (
+                                              <span className="text-rose-400 line-through">
+                                                S/ {item.basePrice.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                                              </span>
+                                            ) : (
+                                              <span>
+                                                S/ {item.basePrice.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
                                               </span>
                                             )}
-                                          </div>
-                                        </td>
-                                        <td className="px-4 py-3 text-center">{item.quantity}</td>
-                                        <td className="px-4 py-3 text-right">
-                                          {item.hasDiscount ? (
-                                            <span className="text-rose-400 line-through">
-                                              S/ {item.basePrice.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                                          </td>
+                                          <td className="px-4 py-3 text-right">
+                                            <span className={cn(
+                                              "font-bold",
+                                              item.hasDiscount ? "text-rose-400" : ""
+                                            )}>
+                                              S/ {item.unitPrice.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
                                             </span>
-                                          ) : (
-                                            <span>
-                                              S/ {item.basePrice.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
-                                            </span>
-                                          )}
-                                        </td>
-                                        <td className="px-4 py-3 text-right">
-                                          <span className={cn(
-                                            "font-bold",
-                                            item.hasDiscount ? "text-rose-400" : ""
-                                          )}>
-                                            S/ {item.unitPrice.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
-                                          </span>
-                                        </td>
-                                        <td className="px-4 py-3 text-right font-bold">
-                                          S/ {item.subtotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
-                                        </td>
-                                      </tr>
-                                    ))}
-                                    <tr className="bg-foreground/[0.01]">
-                                      <td colSpan={5} className="px-4 py-3 text-right font-bold text-muted-foreground uppercase tracking-widest">
-                                        Subtotal
-                                      </td>
-                                      <td className="px-4 py-3 text-right font-medium">
-                                        S/ {((sale.totalAmount - sale.deliveryCost) / 1.18).toLocaleString('es-PE', { minimumFractionDigits: 2 })}
-                                      </td>
-                                    </tr>
-                                    <tr className="bg-foreground/[0.01]">
-                                      <td colSpan={5} className="px-4 py-3 text-right font-bold text-muted-foreground uppercase tracking-widest">
-                                        IGV (18%)
-                                      </td>
-                                      <td className="px-4 py-3 text-right font-medium">
-                                        S/ {(sale.totalAmount - sale.deliveryCost - (sale.totalAmount - sale.deliveryCost) / 1.18).toLocaleString('es-PE', { minimumFractionDigits: 2 })}
-                                      </td>
-                                    </tr>
-                                    {sale.isDelivery && (
+                                          </td>
+                                          <td className="px-4 py-3 text-right font-bold">
+                                            S/ {item.subtotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                                          </td>
+                                        </tr>
+                                      ))}
                                       <tr className="bg-foreground/[0.01]">
-                                        <td colSpan={5} className="px-4 py-3 text-right font-bold text-orange-400 uppercase tracking-widest">
-                                          Costo de Envío
+                                        <td colSpan={5} className="px-4 py-3 text-right font-bold text-muted-foreground uppercase tracking-widest">
+                                          Subtotal
                                         </td>
-                                        <td className="px-4 py-3 text-right font-medium text-orange-400">
-                                          S/ {sale.deliveryCost.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                                        <td className="px-4 py-3 text-right font-medium">
+                                          S/ {((sale.totalAmount - sale.deliveryCost) / 1.18).toLocaleString('es-PE', { minimumFractionDigits: 2 })}
                                         </td>
                                       </tr>
-                                    )}
-                                    <tr className="bg-primary/5">
-                                      <td colSpan={5} className="px-4 py-3 text-right font-black text-primary uppercase tracking-widest">
-                                        Total
-                                      </td>
-                                      <td className="px-4 py-3 text-right font-black text-primary">
-                                        S/ {sale.totalAmount.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
-                                      </td>
-                                    </tr>
-                                  </tbody>
-                                </table>
+                                      <tr className="bg-foreground/[0.01]">
+                                        <td colSpan={5} className="px-4 py-3 text-right font-bold text-muted-foreground uppercase tracking-widest">
+                                          IGV (18%)
+                                        </td>
+                                        <td className="px-4 py-3 text-right font-medium">
+                                          S/ {(sale.totalAmount - sale.deliveryCost - (sale.totalAmount - sale.deliveryCost) / 1.18).toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                                        </td>
+                                      </tr>
+                                      {sale.isDelivery && (
+                                        <tr className="bg-foreground/[0.01]">
+                                          <td colSpan={5} className="px-4 py-3 text-right font-bold text-orange-400 uppercase tracking-widest">
+                                            Costo de Envío
+                                          </td>
+                                          <td className="px-4 py-3 text-right font-medium text-orange-400">
+                                            S/ {sale.deliveryCost.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                                          </td>
+                                        </tr>
+                                      )}
+                                      <tr className="bg-primary/5">
+                                        <td colSpan={5} className="px-4 py-3 text-right font-black text-primary uppercase tracking-widest">
+                                          Total
+                                        </td>
+                                        <td className="px-4 py-3 text-right font-black text-primary">
+                                          S/ {sale.totalAmount.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                                        </td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-border/20">
+                                <Button
+                                  onClick={handlePdf}
+                                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs tracking-tight neon-glow hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                >
+                                  <Download size={14} />
+                                  Descargar Factura (PDF)
+                                </Button>
+                                <Button
+                                  onClick={handleTicket}
+                                  variant="outline"
+                                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-foreground/5 border border-border/50 text-foreground/60 font-bold text-xs tracking-tight hover:bg-foreground/10 hover:text-foreground transition-all"
+                                >
+                                  <Printer size={14} />
+                                  Imprimir Ticket
+                                </Button>
+                                {sale.status !== 'VOID' && (
+                                  <Button
+                                    variant="ghost"
+                                    onClick={() => handleVoidSale(sale)}
+                                    disabled={isVoiding}
+                                    className="ml-auto text-rose-500 hover:text-rose-400 font-bold text-xs tracking-tight transition-colors"
+                                  >
+                                    {isVoiding ? 'Anulando...' : 'Anular Venta / Devolver Stock'}
+                                  </Button>
+                                )}
                               </div>
                             </div>
-
-                            <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-border/20">
-                              <Button
-                                onClick={handlePdf}
-                                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs tracking-tight neon-glow hover:scale-[1.02] active:scale-[0.98] transition-all"
-                              >
-                                <Download size={14} />
-                                Descargar Factura (PDF)
-                              </Button>
-                              <Button
-                                onClick={handleTicket}
-                                variant="outline"
-                                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-foreground/5 border border-border/50 text-foreground/60 font-bold text-xs tracking-tight hover:bg-foreground/10 hover:text-foreground transition-all"
-                              >
-                                <Printer size={14} />
-                                Imprimir Ticket
-                              </Button>
-                              {sale.status !== 'VOID' && (
-                                <Button
-                                  variant="ghost"
-                                  onClick={() => handleVoidSale(sale)}
-                                  disabled={isVoiding}
-                                  className="ml-auto text-rose-500 hover:text-rose-400 font-bold text-xs tracking-tight transition-colors"
-                                >
-                                  {isVoiding ? 'Anulando...' : 'Anular Venta / Devolver Stock'}
-                                </Button>
-                              )}
-                            </div>
                           </div>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 )
               })}
 

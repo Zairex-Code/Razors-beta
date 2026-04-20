@@ -49,6 +49,24 @@ export async function getProductBySku(sku: string) {
   })
 }
 
+export async function getProductOptions() {
+  const [allBrands, allCategories] = await Promise.all([
+    prisma.product.findMany({
+      select: { brand: true },
+      distinct: ['brand']
+    }),
+    prisma.product.findMany({
+      select: { category: true },
+      distinct: ['category']
+    })
+  ])
+
+  const brands = allBrands.map(r => r.brand).filter((b): b is string => !!b).sort()
+  const categories = allCategories.map(r => r.category).filter((c): c is string => !!c).sort()
+
+  return { brands, categories }
+}
+
 export async function searchProducts(query: string) {
   return prisma.product.findMany({
     where: {
