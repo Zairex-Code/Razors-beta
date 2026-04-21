@@ -21,8 +21,26 @@ export default async function CustomersPage() {
       date: sale.date instanceof Date ? sale.date.toISOString() : sale.date,
       status: sale.status,
       totalAmount: sale.totalAmount,
+      paymentMethod: sale.paymentMethod,
+      isDelivery: sale.isDelivery,
+      deliveryCost: sale.deliveryCost,
       items: [],
-      location: sale.location
+      location: {
+        ...sale.location,
+        address: null,
+        phone: null,
+        email: null
+      },
+      customer: {
+        id: customer.id,
+        name: customer.name,
+        docType: customer.docType,
+        docNumber: customer.docNumber
+      },
+      user: {
+        id: '',
+        name: 'Vendedor'
+      }
     }))
   }))
 

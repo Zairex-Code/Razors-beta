@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { useReactToPrint } from 'react-to-print'
 import {
   Search,
   User,
@@ -13,21 +14,30 @@ import {
   ChevronDown,
   Pencil,
   Trash2,
+  Loader2,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { deleteCustomer } from '@/app/actions/customer-actions'
+import { getSale } from '@/app/actions/sale-actions'
+import { InvoiceTemplate } from '@/components/sales/InvoiceTemplate'
 
 interface SaleItem {
   id: string
   quantity: number
   unitPrice: number
+  basePrice: number
+  hasDiscount: boolean
+  discountPct: number
   subtotal: number
   product: {
     id: string
     name: string
+    brand?: string | null
+    model?: string | null
     sku: string
+    imageUrl?: string | null
   }
 }
 
@@ -37,8 +47,24 @@ interface Sale {
   date: Date | string
   status: 'PAID' | 'PENDING' | 'VOID'
   totalAmount: number
+  paymentMethod: string
+  isDelivery: boolean
+  deliveryCost: number
   items: SaleItem[]
   location: {
+    id: string
+    name: string
+    address?: string | null
+    phone?: string | null
+    email?: string | null
+  }
+  customer: {
+    id: string
+    name: string
+    docType: string
+    docNumber: string
+  }
+  user: {
     id: string
     name: string
   }
@@ -65,6 +91,9 @@ interface CustomersTableProps {
 export function CustomersTable({ customers, onEditCustomer, onDeleteCustomer }: CustomersTableProps) {
   const [search, setSearch] = useState('')
   const [expandedCustomerId, setExpandedCustomerId] = useState<string | null>(null)
+  const [printingSale, setPrintingSale] = useState<Sale | null>(null)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const invoiceRef = useRef<HTMLDivElement>(null)
 
   const filteredCustomers = customers.filter(
     (customer) =>
@@ -73,6 +102,44 @@ export function CustomersTable({ customers, onEditCustomer, onDeleteCustomer }: 
       customer.email?.toLowerCase().includes(search.toLowerCase()) ||
       customer.phone?.includes(search)
   )
+
+  const handlePrintInvoice = useReactToPrint({
+    contentRef: invoiceRef,
+    documentTitle: '',
+    onBeforePrint: async () => {
+      if (printingSale) {
+        document.title = `Factura-${printingSale.invoiceNumber}`
+      }
+    },
+    onAfterPrint: async () => {
+      document.title = ''
+      setPrintingSale(null)
+    },
+  })
+
+  const handleDownloadInvoice = async (saleId: string) => {
+    setDownloadingId(saleId)
+    try {
+      const sale = await getSale(saleId)
+      if (sale) {
+        setPrintingSale(sale as Sale)
+        setTimeout(() => {
+          handlePrintInvoice()
+        }, 100)
+      }
+    } catch (error) {
+      Swal.fire({
+        title: 'Error',
+        text: 'No se pudo cargar la información de la factura',
+        icon: 'error',
+        background: '#0a0a0a',
+        color: '#fff',
+        confirmButtonColor: '#ef4444',
+      })
+    } finally {
+      setDownloadingId(null)
+    }
+  }
 
   const handleDelete = (customer: Customer) => {
     Swal.fire({
@@ -275,8 +342,18 @@ export function CustomersTable({ customers, onEditCustomer, onDeleteCustomer }: 
                                       </p>
                                     </div>
                                   </div>
-                                  <Button variant="ghost" size="sm" className="rounded-lg p-2">
-                                    <Download size={14} className="text-primary" />
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="rounded-lg p-2"
+                                    onClick={() => handleDownloadInvoice(sale.id)}
+                                    disabled={downloadingId === sale.id}
+                                  >
+                                    {downloadingId === sale.id ? (
+                                      <Loader2 size={14} className="text-primary animate-spin" />
+                                    ) : (
+                                      <Download size={14} className="text-primary" />
+                                    )}
                                   </Button>
                                 </div>
                               ))
@@ -305,6 +382,12 @@ export function CustomersTable({ customers, onEditCustomer, onDeleteCustomer }: 
           </div>
         </div>
       </div>
+
+      {printingSale && (
+        <div className="hidden">
+          <InvoiceTemplate ref={invoiceRef} sale={printingSale} />
+        </div>
+      )}
     </div>
   )
 }

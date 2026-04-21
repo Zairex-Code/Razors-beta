@@ -240,7 +240,7 @@ export function InventoryTable({ products, locations, productOptions }: Inventor
 
           <div className="flex items-center gap-3">
             <div className="relative">
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v || 'Todas')}>
                 <SelectTrigger className="w-[180px] bg-black/50 border-gray-800 text-gray-400 hover:text-cyan-400 focus:text-cyan-400 hover:border-gray-700 focus:border-primary/50 rounded-xl text-sm font-medium">
                   <Filter size={14} className="mr-2" />
                   <SelectValue placeholder="Categoría" />
@@ -255,7 +255,7 @@ export function InventoryTable({ products, locations, productOptions }: Inventor
             </div>
 
             <div className="relative">
-              <Select value={stockFilter} onValueChange={setStockFilter}>
+              <Select value={stockFilter} onValueChange={(v) => setStockFilter(v || 'Todos')}>
                 <SelectTrigger className="w-[160px] bg-black/50 border-gray-800 text-gray-400 hover:text-cyan-400 focus:text-cyan-400 hover:border-gray-700 focus:border-primary/50 rounded-xl text-sm font-medium">
                   <SelectValue placeholder="Stock" />
                 </SelectTrigger>

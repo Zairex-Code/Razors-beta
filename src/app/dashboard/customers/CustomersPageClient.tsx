@@ -12,11 +12,17 @@ interface SaleItem {
   id: string
   quantity: number
   unitPrice: number
+  basePrice: number
+  hasDiscount: boolean
+  discountPct: number
   subtotal: number
   product: {
     id: string
     name: string
+    brand?: string | null
+    model?: string | null
     sku: string
+    imageUrl?: string | null
   }
 }
 
@@ -26,8 +32,24 @@ interface Sale {
   date: Date | string
   status: 'PAID' | 'PENDING' | 'VOID'
   totalAmount: number
+  paymentMethod: string
+  isDelivery: boolean
+  deliveryCost: number
   items: SaleItem[]
   location: {
+    id: string
+    name: string
+    address?: string | null
+    phone?: string | null
+    email?: string | null
+  }
+  customer: {
+    id: string
+    name: string
+    docType: string
+    docNumber: string
+  }
+  user: {
     id: string
     name: string
   }

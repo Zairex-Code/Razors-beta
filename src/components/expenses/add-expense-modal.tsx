@@ -125,7 +125,7 @@ export function AddExpenseModal({ onClose, onSuccess }: AddExpenseModalProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Categoría</label>
-                <Select name="category" value={category} onValueChange={setCategory}>
+                <Select name="category" value={category} onValueChange={(v) => setCategory(v || 'RENT')}>
                   <SelectTrigger className="w-full bg-black/50 border border-gray-800 rounded-xl py-3 px-4 text-white focus:ring-1 focus:ring-cyan-500 outline-none">
                     <SelectValue />
                   </SelectTrigger>
@@ -176,7 +176,7 @@ export function AddExpenseModal({ onClose, onSuccess }: AddExpenseModalProps) {
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Estado</label>
-                <Select name="status" value={status} onValueChange={setStatus}>
+                <Select name="status" value={status} onValueChange={(v) => setStatus(v || 'PENDING')}>
                   <SelectTrigger className="w-full bg-black/50 border border-gray-800 rounded-xl py-3 px-4 text-white focus:ring-1 focus:ring-cyan-500 outline-none">
                     <SelectValue />
                   </SelectTrigger>

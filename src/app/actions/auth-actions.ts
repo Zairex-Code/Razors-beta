@@ -11,7 +11,16 @@ export async function getSessionUser() {
     return null
   }
 
-  return { id: userId, role: userRole! }
+  const dbUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, name: true, role: true }
+  })
+
+  if (!dbUser) {
+    return null
+  }
+
+  return { id: dbUser.id, name: dbUser.name, role: dbUser.role }
 }
 
 export async function requireAuth() {
