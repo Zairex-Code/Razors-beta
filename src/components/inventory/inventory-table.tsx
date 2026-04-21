@@ -32,6 +32,7 @@ interface InventoryItem {
   model?: string | null
   category: string
   pricePen: number
+  costPen?: number
   imageUrl?: string | null
   inventory: Array<{
     id: string
@@ -58,6 +59,7 @@ interface Product {
   model?: string | null
   category: string
   pricePen: number
+  costPen?: number
   imageUrl?: string | null
 }
 
@@ -70,10 +72,12 @@ interface InventoryTableProps {
   products: InventoryItem[]
   locations: Location[]
   productOptions?: ProductOptions
+  userRole?: string
 }
 
-export function InventoryTable({ products, locations, productOptions }: InventoryTableProps) {
+export function InventoryTable({ products, locations, productOptions, userRole }: InventoryTableProps) {
   const [search, setSearch] = useState('')
+  const canViewCost = userRole === 'ADMIN' || userRole === 'BOSS'
   const [expandedProductId, setExpandedProductId] = useState<string | null>(null)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [editModalOpen, setEditModalOpen] = useState(false)
@@ -184,6 +188,7 @@ export function InventoryTable({ products, locations, productOptions }: Inventor
       name: newProduct.name,
       category: newProduct.category,
       pricePen: 0,
+      costPen: 0,
       inventory: locations.map(loc => ({ id: '', stock: 0, location: loc }))
     }
     startTransition(() => {
@@ -284,7 +289,7 @@ export function InventoryTable({ products, locations, productOptions }: Inventor
         <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-blue-500/5 blur-[100px] rounded-full -ml-32 -mb-32 pointer-events-none" />
 
 <div className="relative z-10 rounded-2xl overflow-hidden">
-            <table className="w-full text-left border-collapse">
+<table className="w-full text-left border-collapse">
               <thead>
                 <tr className="text-muted-foreground text-[10px] uppercase tracking-[0.25em] font-bold bg-foreground/5">
                   <th className="px-4 py-4 w-20">Foto</th>
@@ -293,9 +298,16 @@ export function InventoryTable({ products, locations, productOptions }: Inventor
                   <th className="px-4 py-4 w-36">Marca</th>
                   <th className="px-4 py-4 w-36">Modelo</th>
                   <th className="px-4 py-4 w-32 text-center">Categoría</th>
-                  <th className="px-4 py-4 w-32 text-center">Stock</th>
+                  <th className="px-4 py-4 w-24 text-center">Stock</th>
                   <th className="px-4 py-4">Ubicación / Sede</th>
-                  <th className="px-4 py-4 w-28 text-right">Precio</th>
+                  {canViewCost ? (
+                    <>
+                      <th className="px-4 py-4 w-28 text-right">Precio Compra</th>
+                      <th className="px-4 py-4 w-28 text-right">Precio Venta</th>
+                    </>
+                  ) : (
+                    <th className="px-4 py-4 w-28 text-right">Precio</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/20">
@@ -384,16 +396,31 @@ export function InventoryTable({ products, locations, productOptions }: Inventor
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-5 w-28 text-right">
-                          <span className="text-sm font-bold text-foreground/80 whitespace-nowrap">
-                            S/ {product.pricePen.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
-                          </span>
-                        </td>
+                        {canViewCost ? (
+                          <>
+                            <td className="px-4 py-5 w-28 text-right">
+                              <span className="text-sm font-bold text-foreground/60 whitespace-nowrap">
+                                S/ {(product.costPen || 0).toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                              </span>
+                            </td>
+                            <td className="px-4 py-5 w-28 text-right">
+                              <span className="text-sm font-bold text-foreground/80 whitespace-nowrap">
+                                S/ {product.pricePen.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                              </span>
+                            </td>
+                          </>
+                        ) : (
+                          <td className="px-4 py-5 w-28 text-right">
+                            <span className="text-sm font-bold text-foreground/80 whitespace-nowrap">
+                              S/ {product.pricePen.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                            </span>
+                          </td>
+                        )}
                       </tr>
 
                       {isExpanded && (
                         <tr className="bg-black/40">
-                          <td colSpan={9} className="p-0">
+                          <td colSpan={canViewCost ? 10 : 9} className="p-0">
                             <div className="glass-panel bg-black/40 border-primary/20 rounded-2xl p-8 border-l-4 border-l-primary/60 shadow-2xl space-y-6">
                               <div className="flex flex-col lg:flex-row gap-10">
                                 <div className="space-y-4 flex-1">
@@ -448,6 +475,14 @@ export function InventoryTable({ products, locations, productOptions }: Inventor
                                       <span className="text-muted-foreground text-xs">Categoría</span>
                                       <p className="font-bold">{product.category}</p>
                                     </div>
+                                    {canViewCost && (
+                                      <div>
+                                        <span className="text-muted-foreground text-xs">Costo</span>
+                                        <p className="font-bold text-foreground/60">
+                                          S/ {(product.costPen || 0).toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                                        </p>
+                                      </div>
+                                    )}
                                     <div>
                                       <span className="text-muted-foreground text-xs">Precio Venta</span>
                                       <p className="font-bold text-primary">

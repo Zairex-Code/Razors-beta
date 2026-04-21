@@ -89,11 +89,15 @@ async function processDelivery(importId: string, previousStatus: ImportStatus) {
       const totalItemCostPen = (itemCostUsd * importOrder.exchangeRate) + prorrateo
       const unitCostPen = totalItemCostPen / item.quantity
       const profitMultiplier = 1 + (profitMargin / 100)
-      const newPricePen = roundCurrency(unitCostPen * profitMultiplier)
+      const rawPrice = unitCostPen * profitMultiplier
+      const newPricePen = Math.ceil(rawPrice)
 
       await tx.product.update({
         where: { id: item.productId },
-        data: { pricePen: newPricePen }
+        data: { 
+          pricePen: newPricePen,
+          costPen: roundCurrency(unitCostPen)
+        }
       })
 
       for (const location of warehouses) {

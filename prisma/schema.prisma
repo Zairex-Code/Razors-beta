@@ -47,6 +47,7 @@ model Product {
   model       String?
   category    String
   pricePen    Float
+  costPen     Float        @default(0)
   imageUrl    String?
   isActive    Boolean      @default(true)
   importItems ImportItem[]
