@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/utils/supabase/server'
+import { cookies } from 'next/headers'
 import { Sidebar } from '@/components/layout/sidebar'
 import { MobileNav } from '@/components/layout/mobile-nav'
 
@@ -9,20 +9,29 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  console.log('[DASHBOARD LAYOUT] === START ===')
 
-  if (!user) {
+  const cookieStore = await cookies()
+  const userId = cookieStore.get('x-user-id')?.value
+  const userRole = cookieStore.get('x-user-role')?.value
+  const userEmail = cookieStore.get('x-user-email')?.value
+
+  console.log('[DASHBOARD LAYOUT] Cookies - userId:', userId, 'role:', userRole, 'email:', userEmail)
+
+  if (!userId || !userEmail) {
+    console.log('[DASHBOARD LAYOUT] No user cookies found, redirecting to /login')
     redirect('/login')
   }
 
   const dbUser = await prisma.user.findUnique({
-    where: { email: user.email },
+    where: { id: userId },
     select: { id: true, name: true, email: true, role: true, isActive: true }
   })
 
+  console.log('[DASHBOARD LAYOUT] Prisma result:', dbUser)
+
   if (!dbUser || !dbUser.isActive) {
-    await supabase.auth.signOut()
+    console.log('[DASHBOARD LAYOUT] User not found in Prisma or inactive, redirecting to /login')
     redirect('/login')
   }
 

@@ -1,13 +1,14 @@
 import { getImports } from '@/app/actions/import-actions'
 import { getProviders } from '@/app/actions/provider-actions'
-import { getProductsForImport } from '@/app/actions/product-actions'
+import { getProductsForImport, getProductOptions } from '@/app/actions/product-actions'
 import ImportsPageClient from './ImportsPageClient'
 
 export default async function ImportsPage() {
-  const [imports, providers, products] = await Promise.all([
+  const [imports, providers, products, productOptions] = await Promise.all([
     getImports(),
     getProviders(),
-    getProductsForImport()
+    getProductsForImport(),
+    getProductOptions()
   ])
 
   const formattedImports = imports.map(imp => ({
@@ -16,5 +17,5 @@ export default async function ImportsPage() {
     createdAt: imp.createdAt.toISOString(),
   }))
 
-  return <ImportsPageClient initialImports={formattedImports} providers={providers} products={products} />
+  return <ImportsPageClient initialImports={formattedImports} providers={providers} products={products} productOptions={productOptions} />
 }

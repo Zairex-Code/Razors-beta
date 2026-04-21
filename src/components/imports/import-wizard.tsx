@@ -18,11 +18,14 @@ import {
   Search,
   Loader2,
   Eye,
+  Package,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { AddProductModal } from '@/components/ui/add-product-modal'
+import { SmartCombobox } from '@/components/ui/smart-combobox'
+import { GlassDatePicker } from '@/components/ui/glass-date-picker'
 import { useImportWizardStore } from '@/stores/import-wizard-store'
 import { createImport } from '@/app/actions/import-actions'
 import { searchProducts } from '@/app/actions/product-actions'
@@ -43,21 +46,27 @@ interface ImportWizardProps {
     id: string
     name: string
     sku: string
+    brand?: string
+    model?: string
     category: string
   }>
+  productOptions?: {
+    brands: string[]
+    categories: string[]
+  }
 }
 
 interface ProductComboboxProps {
   value: string
-  onChange: (productId: string, data: { sku: string, name: string, category: string }) => void
-  products: Array<{ id: string, name: string, sku: string, category: string }>
+  onChange: (productId: string, data: { sku: string, name: string, brand?: string, model?: string, category: string, imageUrl?: string }) => void
+  products: Array<{ id: string, name: string, sku: string, brand?: string, model?: string, category: string, imageUrl?: string }>
   disabledOptions?: string[]
 }
 
 function ProductCombobox({ value, onChange, products, disabledOptions = [] }: ProductComboboxProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState('')
-  const [results, setResults] = useState<Array<{ id: string, name: string, sku: string, category: string }>>([])
+  const [results, setResults] = useState<Array<{ id: string, name: string, sku: string, brand?: string, model?: string, category: string, imageUrl?: string }>>([])
   const [isSearching, setIsSearching] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -77,7 +86,10 @@ function ProductCombobox({ value, onChange, products, disabledOptions = [] }: Pr
           id: p.id,
           name: p.name,
           sku: p.sku,
-          category: p.category
+          brand: p.brand ?? undefined,
+          model: p.model ?? undefined,
+          category: p.category,
+          imageUrl: p.imageUrl ?? undefined
         })))
       } catch (err) {
         console.error(err)
@@ -99,8 +111,16 @@ function ProductCombobox({ value, onChange, products, disabledOptions = [] }: Pr
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const handleSelect = (product: { id: string, name: string, sku: string, category: string }) => {
-    onChange(product.id, { sku: product.sku, name: product.name, category: product.category })
+  const formatProductName = (p: { name: string; brand?: string; model?: string }) => {
+    const parts = []
+    if (p.brand) parts.push(p.brand)
+    parts.push(p.name)
+    if (p.model) parts.push(`- ${p.model}`)
+    return parts.join(' ')
+  }
+
+  const handleSelect = (product: { id: string, name: string, sku: string, brand?: string, model?: string, category: string, imageUrl?: string }) => {
+    onChange(product.id, { sku: product.sku, name: product.name, brand: product.brand, model: product.model, category: product.category, imageUrl: product.imageUrl })
     setSearch('')
     setResults([])
     setIsOpen(false)
@@ -111,7 +131,7 @@ function ProductCombobox({ value, onChange, products, disabledOptions = [] }: Pr
       <input
         ref={inputRef}
         type="text"
-        value={isOpen ? search : selectedProduct?.name || ''}
+        value={isOpen ? search : (selectedProduct ? formatProductName(selectedProduct) : '')}
         onChange={(e) => {
           setSearch(e.target.value)
           setIsOpen(true)
@@ -148,16 +168,26 @@ function ProductCombobox({ value, onChange, products, disabledOptions = [] }: Pr
               </div>
             )}
             {results.length > 0 && (
-              <div className="max-h-48 overflow-y-auto divide-y divide-border/20">
+              <div className="max-h-48 overflow-y-auto divide-y divide-border/20 bg-gray-950">
                 {results.map(product => (
                   <button
                     key={product.id}
                     onClick={() => handleSelect(product)}
-                    className="w-full px-3 py-2.5 text-left hover:bg-foreground/5 transition-colors flex items-center justify-between gap-2"
+                    className="w-full px-3 py-3 text-left hover:bg-foreground/5 transition-colors flex items-center justify-between gap-2"
                   >
-                    <div>
-                      <p className="text-sm font-semibold">{product.name}</p>
-                      <p className="text-[10px] text-muted-foreground">{product.sku} • {product.category}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-200 truncate">{product.name}</p>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        {product.brand && (
+                          <span className="px-1.5 py-0.5 rounded-md bg-cyan-950/50 text-cyan-400 border border-cyan-900/50 text-[10px] font-medium">
+                            {product.brand}
+                          </span>
+                        )}
+                        {product.model && (
+                          <span className="text-[10px] text-gray-300 truncate">{product.model}</span>
+                        )}
+                        <span className="text-[10px] text-gray-500">{product.category}</span>
+                      </div>
                     </div>
                   </button>
                 ))}
@@ -170,7 +200,7 @@ function ProductCombobox({ value, onChange, products, disabledOptions = [] }: Pr
   )
 }
 
-export function ImportWizard({ onClose, onComplete, providers, products }: ImportWizardProps) {
+export function ImportWizard({ onClose, onComplete, providers, products, productOptions }: ImportWizardProps) {
   const { draft, initDraft, updateBasicInfo, addProduct, removeProduct, updateProduct, addInternalCost, addExtraCost, removeCost, updateCost, addDocument, removeDocument, resetDraft, setStep, setDelivered } = useImportWizardStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -306,12 +336,15 @@ export function ImportWizard({ onClose, onComplete, providers, products }: Impor
     }
   }
 
-  const handleProductCreated = (product: { id: string, name: string, sku: string, category: string }) => {
+  const handleProductCreated = (product: { id: string, name: string, sku: string, brand?: string, model?: string, category: string, imageUrl?: string }) => {
     addProduct({
       productId: product.id,
       sku: product.sku,
       name: product.name,
+      brand: product.brand,
+      model: product.model,
       category: product.category,
+      imageUrl: product.imageUrl,
       quantity: 1,
       unitPriceUsd: 0
     })
@@ -348,6 +381,8 @@ export function ImportWizard({ onClose, onComplete, providers, products }: Impor
         isOpen={isNewProductModalOpen}
         onClose={() => setIsNewProductModalOpen(false)}
         onCreated={handleProductCreated}
+        brands={productOptions?.brands || []}
+        categories={productOptions?.categories || []}
       />
 
       <div className="relative z-10 p-8 border-b border-border/30 bg-background/40 backdrop-blur-md">
@@ -475,7 +510,7 @@ function StepBasicInfo({ providers }: { providers: string[] }) {
       exit={{ opacity: 0, y: -20 }}
       className="space-y-10"
     >
-      <div className="glass-panel p-12 rounded-[2.5rem] border-border/30 relative overflow-hidden">
+      <div className="glass-panel p-12 rounded-[2.5rem] border-border relative overflow-visible">
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-[80px] rounded-full -mr-32 -mt-32 pointer-events-none" />
 
         <div className="max-w-2xl mx-auto space-y-12 py-8">
@@ -486,18 +521,13 @@ function StepBasicInfo({ providers }: { providers: string[] }) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
             <div className="space-y-3">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Nombre del Proveedor *</label>
-              <select
-                required
+              <SmartCombobox
+                label="Nombre del Proveedor *"
                 value={draft.provider}
-                onChange={(e) => updateBasicInfo({ provider: e.target.value })}
-                className="w-full glass-input rounded-2xl py-4 px-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all appearance-none bg-[#0a0a0a] text-white"
-              >
-                <option value="" disabled>Selecciona un proveedor...</option>
-                {providers.map(p => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
+                onChange={(val) => updateBasicInfo({ provider: val })}
+                options={providers}
+                placeholder="Buscar o crear proveedor..."
+              />
             </div>
             <div className="space-y-3">
               <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Número de Factura Proforma (PI) *</label>
@@ -511,12 +541,11 @@ function StepBasicInfo({ providers }: { providers: string[] }) {
               />
             </div>
             <div className="space-y-3">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Fecha Estimada de Llegada (ETA)</label>
-              <input
-                type="date"
-                value={draft.eta ?? ''}
-                onChange={(e) => updateBasicInfo({ eta: e.target.value || null })}
-                className="w-full glass-input rounded-2xl py-4 px-5 text-sm focus:ring-2 focus:ring-primary/20 transition-all"
+              <GlassDatePicker
+                label="Fecha Estimada de Llegada (ETA)"
+                value={draft.eta}
+                onChange={(val) => updateBasicInfo({ eta: val })}
+                placeholder="Seleccionar fecha..."
               />
             </div>
             <div className="space-y-3">
@@ -536,12 +565,11 @@ function StepBasicInfo({ providers }: { providers: string[] }) {
           </div>
         </div>
       </div>
-
     </motion.div>
   )
 }
 
-function StepProducts({ products, onOpenNewProductModal }: { products: Array<{ id: string, name: string, sku: string, category: string }>, onOpenNewProductModal: () => void }) {
+function StepProducts({ products, onOpenNewProductModal }: { products: Array<{ id: string, name: string, sku: string, brand?: string, model?: string, category: string }>, onOpenNewProductModal: () => void }) {
   const { draft, addProduct, removeProduct, updateProduct, addInternalCost, removeCost, updateCost } = useImportWizardStore()
 
   if (!draft) return null
@@ -551,19 +579,33 @@ function StepProducts({ products, onOpenNewProductModal }: { products: Array<{ i
       productId: `temp-${Date.now()}`,
       sku: '',
       name: '',
+      brand: undefined,
+      model: undefined,
       category: '',
+      imageUrl: undefined,
       quantity: 1,
       unitPriceUsd: 0
     })
   }
 
-  const handleProductSelect = (currentProductId: string, newProductId: string, data: { sku: string, name: string, category: string }) => {
+  const handleProductSelect = (currentProductId: string, newProductId: string, data: { sku: string, name: string, brand?: string, model?: string, category: string, imageUrl?: string }) => {
     updateProduct(currentProductId, {
       productId: newProductId,
       sku: data.sku,
       name: data.name,
-      category: data.category
+      brand: data.brand,
+      model: data.model,
+      category: data.category,
+      imageUrl: data.imageUrl
     })
+  }
+
+  const formatProductName = (p: { name: string; brand?: string; model?: string }) => {
+    const parts = []
+    if (p.brand) parts.push(p.brand)
+    parts.push(p.name)
+    if (p.model) parts.push(`- ${p.model}`)
+    return parts.join(' ')
   }
 
   const productsTotal = draft.products.reduce((acc, p) => acc + (p.quantity * p.unitPriceUsd), 0)
@@ -594,28 +636,38 @@ function StepProducts({ products, onOpenNewProductModal }: { products: Array<{ i
         </button>
       </div>
 
-      <div className="glass-panel rounded-3xl border-border/30">
-        <table className="w-full text-left border-collapse">
+      <div className="glass-panel rounded-3xl border-border/30 overflow-visible relative z-20">
+        <table className="w-full text-left border-collapse min-w-[900px]">
           <thead>
             <tr className="bg-foreground/5 text-muted-foreground text-[10px] uppercase tracking-[0.2em] font-bold">
-              <th className="px-6 py-4">Producto</th>
-              <th className="px-6 py-4">SKU / Categoría</th>
-              <th className="px-6 py-4 text-center">Cantidad</th>
-              <th className="px-6 py-4 text-right">Precio Unit. (USD)</th>
-              <th className="px-6 py-4 text-right">Total (USD)</th>
-              <th className="px-6 py-4 text-center">Acciones</th>
+              <th className="px-4 py-4 w-16">Foto</th>
+              <th className="px-4 py-4 w-[35%]">Producto</th>
+              <th className="px-4 py-4 w-[20%]">Modelo / Categoría</th>
+              <th className="px-4 py-4 text-center w-28">Cantidad</th>
+              <th className="px-4 py-4 text-right w-28">Precio Unit. (USD)</th>
+              <th className="px-4 py-4 text-right w-28">Total (USD)</th>
+              <th className="px-4 py-4 text-center w-16">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/20">
             {draft.products.map((p) => (
               <tr key={p.productId} className="hover:bg-foreground/[0.02] transition-colors">
-                <td className="px-6 py-4 overflow-visible">
-                  <div className="relative overflow-visible">
+                <td className="px-4 py-4">
+                  <div className="w-12 h-12 rounded-lg bg-card border border-border overflow-hidden flex items-center justify-center">
+                    {p.imageUrl ? (
+                      <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <Package size={16} className="text-muted-foreground/30" />
+                    )}
+                  </div>
+                </td>
+                <td className="px-4 py-4">
+                  <div className="relative">
                     <ProductCombobox
                       value={p.productId}
                       onChange={(productId, data) => {
                         if (p.productId.startsWith('temp-')) {
-                          updateProduct(p.productId, { productId, sku: data.sku, name: data.name, category: data.category })
+                          updateProduct(p.productId, { productId, sku: data.sku, name: data.name, brand: data.brand, model: data.model, category: data.category, imageUrl: data.imageUrl })
                         } else {
                           handleProductSelect(p.productId, productId, data)
                         }
@@ -624,21 +676,27 @@ function StepProducts({ products, onOpenNewProductModal }: { products: Array<{ i
                     />
                   </div>
                 </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    {p.sku ? (
+                <td className="px-4 py-4">
+                  <div className="flex flex-col gap-1">
+                    {p.model ? (
                       <>
-                        <span className="font-mono text-xs text-primary">{p.sku}</span>
-                        <span className="px-2 py-0.5 rounded-md bg-foreground/5 text-[10px] uppercase tracking-wider text-muted-foreground">{p.category}</span>
+                        <span className="text-sm font-bold text-cyan-400 truncate">{p.model}</span>
+                        <div className="flex items-center gap-2">
+                          {p.brand && (
+                            <span className="px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-[10px] text-primary font-medium">{p.brand}</span>
+                          )}
+                          <span className="px-2 py-0.5 rounded-md bg-foreground/5 text-[10px] uppercase tracking-wider text-gray-500">{p.category}</span>
+                        </div>
                       </>
                     ) : (
-                      <span className="text-muted-foreground text-xs">—</span>
+                      <span className="text-muted-foreground text-xs italic">Sin modelo</span>
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-4 text-center">
+                <td className="px-4 py-4 text-center">
                   <input
                     type="number"
+                    step="0.01"
                     min={1}
                     value={p.quantity || ''}
                     onChange={(e) => {
@@ -652,7 +710,7 @@ function StepProducts({ products, onOpenNewProductModal }: { products: Array<{ i
                     className="bg-foreground/5 border border-border/50 rounded-lg py-1 px-2 text-sm font-bold w-20 text-center mx-auto focus:ring-1 focus:ring-primary/30"
                   />
                 </td>
-                <td className="px-6 py-4 text-right">
+                <td className="px-4 py-4 text-right">
                   <div className="flex items-center justify-end gap-1">
                     <span className="text-muted-foreground text-xs">$</span>
                     <input
@@ -672,12 +730,12 @@ function StepProducts({ products, onOpenNewProductModal }: { products: Array<{ i
                     />
                   </div>
                 </td>
-                <td className="px-6 py-4 text-right">
+                <td className="px-4 py-4 text-right">
                   <span className="text-sm font-black text-foreground">
                     ${(p.quantity * p.unitPriceUsd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-center">
+                <td className="px-4 py-4 text-center">
                   <button
                     onClick={() => removeProduct(p.productId)}
                     className="p-2 rounded-lg hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition-all"
@@ -699,7 +757,7 @@ function StepProducts({ products, onOpenNewProductModal }: { products: Array<{ i
         Agregar fila
       </button>
 
-      <div className="glass-panel p-6 rounded-3xl border-border/30 space-y-6">
+      <div className="glass-panel p-6 rounded-3xl border-border/30 space-y-6 relative z-10">
           <div className="flex items-center gap-2 text-primary">
             <Truck size={18} />
             <h4 className="text-sm font-bold uppercase tracking-widest">Costos Internos del Proveedor (Ej. Flete Local)</h4>
@@ -1016,7 +1074,7 @@ function StepExtraCosts() {
                                         <option value="PEN">PEN</option>
                                         <option value="USD">USD</option>
                                       </select>
-                                      <input
+<input
                                         type="number"
                                         step="0.01"
                                         min={0}

@@ -49,11 +49,17 @@ interface ImportsPageClientProps {
     id: string
     name: string
     sku: string
+    brand?: string
+    model?: string
     category: string
   }>
+  productOptions?: {
+    brands: string[]
+    categories: string[]
+  }
 }
 
-export default function ImportsPageClient({ initialImports, providers, products }: ImportsPageClientProps) {
+export default function ImportsPageClient({ initialImports, providers, products, productOptions }: ImportsPageClientProps) {
   const [isWizardOpen, setIsWizardOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [optimisticImports, setOptimisticImports] = useOptimistic(
@@ -107,6 +113,7 @@ export default function ImportsPageClient({ initialImports, providers, products 
           onComplete={handleWizardComplete}
           providers={providers}
           products={products}
+          productOptions={productOptions}
         />
       )}
     </div>

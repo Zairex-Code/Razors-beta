@@ -2,6 +2,8 @@
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { createClient } from '@/utils/supabase/client'
+import { uploadFileToStorage } from '@/lib/storage'
 
 export async function getProducts() {
   return prisma.product.findMany({
@@ -18,17 +20,27 @@ export async function getProducts() {
 }
 
 export async function getProductsForImport() {
-  return prisma.product.findMany({
+  const products = await prisma.product.findMany({
     select: {
       id: true,
       name: true,
       brand: true,
       model: true,
       sku: true,
-      category: true
+      category: true,
+      imageUrl: true
     },
     orderBy: { name: 'asc' }
   })
+  return products.map(p => ({
+    id: p.id,
+    name: p.name,
+    sku: p.sku,
+    category: p.category,
+    brand: p.brand ?? undefined,
+    model: p.model ?? undefined,
+    imageUrl: p.imageUrl ?? undefined
+  }))
 }
 
 export async function getProduct(id: string) {
@@ -67,6 +79,34 @@ export async function getProductOptions() {
   return { brands, categories }
 }
 
+export async function uploadProductImage(file: File): Promise<string> {
+  const { createClient } = await import('@supabase/supabase-js')
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+  const fileExt = file.name.split('.').pop()
+  const fileName = `product_${Date.now()}_${Math.random().toString(36).substring(2, 15)}.${fileExt}`
+  const filePath = `products/${fileName}`
+
+  const { data, error } = await supabaseAdmin.storage
+    .from('products')
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: false
+    })
+
+  if (error) {
+    throw new Error(`Error al subir imagen: ${error.message}`)
+  }
+
+  const { data: urlData } = supabaseAdmin.storage
+    .from('products')
+    .getPublicUrl(filePath)
+
+  return urlData.publicUrl
+}
+
 export async function searchProducts(query: string) {
   return prisma.product.findMany({
     where: {
@@ -90,6 +130,7 @@ export async function createProduct(data: {
   model?: string
   category: string
   pricePen: number
+  imageUrl?: string
 }) {
   const product = await prisma.product.create({
     data: {
@@ -98,7 +139,8 @@ export async function createProduct(data: {
       brand: data.brand || null,
       model: data.model || null,
       category: data.category,
-      pricePen: data.pricePen
+      pricePen: data.pricePen,
+      imageUrl: data.imageUrl || null
     }
   })
 
@@ -144,6 +186,7 @@ export async function updateProduct(id: string, data: {
   model?: string
   category: string
   pricePen: number
+  imageUrl?: string
 }) {
   const product = await prisma.product.update({
     where: { id },
@@ -152,7 +195,8 @@ export async function updateProduct(id: string, data: {
       brand: data.brand || null,
       model: data.model || null,
       category: data.category,
-      pricePen: data.pricePen
+      pricePen: data.pricePen,
+      imageUrl: data.imageUrl || null
     }
   })
 

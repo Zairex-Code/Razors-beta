@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { ImportStatus } from '@prisma/client'
 import { requireBossOrAdmin } from './auth-actions'
+import { roundCurrency } from '@/utils/math'
 
 export async function getImports(status?: ImportStatus) {
   return prisma.import.findMany({
@@ -68,13 +69,13 @@ export async function createImport(data: {
       provider: data.provider,
       piNumber: data.piNumber,
       eta: data.eta ? new Date(data.eta) : null,
-      exchangeRate: data.exchangeRate,
+      exchangeRate: roundCurrency(data.exchangeRate),
       status: data.delivered ? 'DELIVERED' : 'PLANNING',
       items: {
         create: data.items.map(item => ({
           productId: item.productId,
           quantity: item.quantity,
-          unitPriceUsd: item.unitPriceUsd
+          unitPriceUsd: roundCurrency(item.unitPriceUsd)
         }))
       },
       costs: {
@@ -82,17 +83,17 @@ export async function createImport(data: {
           ...data.internalCosts.map(cost => ({
             category: cost.category,
             description: cost.description,
-            amount: cost.amount,
+            amount: roundCurrency(cost.amount),
             currency: cost.currency,
-            exchangeRate: cost.exchangeRate,
+            exchangeRate: cost.exchangeRate ? roundCurrency(cost.exchangeRate) : null,
             voucherUrl: cost.voucherUrl
           })),
           ...data.extraCosts.map(cost => ({
             category: cost.category,
             description: cost.description,
-            amount: cost.amount,
+            amount: roundCurrency(cost.amount),
             currency: cost.currency,
-            exchangeRate: cost.exchangeRate,
+            exchangeRate: cost.exchangeRate ? roundCurrency(cost.exchangeRate) : null,
             voucherUrl: cost.voucherUrl
           }))
         ]
@@ -109,9 +110,9 @@ export async function createImport(data: {
   })
 
   if (data.delivered) {
-    const locations = await prisma.location.findMany()
+    const warehouses = await prisma.location.findMany({ where: { type: 'WAREHOUSE' } })
     for (const item of importOrder.items) {
-      for (const location of locations) {
+      for (const location of warehouses) {
         await prisma.inventory.upsert({
           where: {
             productId_locationId: {
@@ -159,8 +160,8 @@ export async function updateImportStatus(id: string, status: ImportStatus) {
 
   if (previousStatus === 'DELIVERED' && status !== 'DELIVERED') {
     for (const item of importOrder.items) {
-      const locations = await prisma.location.findMany()
-      for (const location of locations) {
+      const warehouses = await prisma.location.findMany({ where: { type: 'WAREHOUSE' } })
+      for (const location of warehouses) {
         await prisma.inventory.update({
           where: {
             productId_locationId: {
@@ -176,8 +177,8 @@ export async function updateImportStatus(id: string, status: ImportStatus) {
     }
   } else if (previousStatus !== 'DELIVERED' && status === 'DELIVERED') {
     for (const item of importOrder.items) {
-      const locations = await prisma.location.findMany()
-      for (const location of locations) {
+      const warehouses = await prisma.location.findMany({ where: { type: 'WAREHOUSE' } })
+      for (const location of warehouses) {
         await prisma.inventory.upsert({
           where: {
             productId_locationId: {

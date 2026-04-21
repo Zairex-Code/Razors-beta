@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { cn } from '@/lib/utils'
+import { roundCurrency } from '@/utils/math'
 import { motion } from 'motion/react'
 import {
   Search,
@@ -18,6 +19,7 @@ import {
   Percent,
   ArrowDown,
   ArrowUp,
+  AlertTriangle,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 import { Button } from '@/components/ui/button'
@@ -35,6 +37,7 @@ interface Product {
   model?: string | null
   category: string
   pricePen: number
+  imageUrl?: string | null
   inventory: Array<{
     locationId: string
     stock: number
@@ -77,7 +80,7 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
   const [newCustomerPhone, setNewCustomerPhone] = useState('')
   const [isCreatingCustomer, setIsCreatingCustomer] = useState(false)
 
-  const { cart, addToCart, removeFromCart, updateQuantity, updateUnitPrice, clearCart, setCustomer, paymentMethod, setPaymentMethod, isDelivery, setIsDelivery, deliveryCost, setDeliveryCost } = usePOSStore()
+  const { cart, addToCart, removeFromCart, updateQuantity, updateUnitPrice, clearCart, setCustomer, paymentMethod, setPaymentMethod, isDelivery, setIsDelivery, deliveryCost, setDeliveryCost, subtotal, igv, total } = usePOSStore()
 
   const categories = useMemo(() => {
     const cats = new Set(products.map(p => p.category))
@@ -103,17 +106,43 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
     )
   }, [customers, customerSearchQuery])
 
-  const cartTotal = cart.reduce((sum, item) => sum + item.subtotal, 0)
-  const subtotalBeforeIgv = cartTotal
-  const igv = subtotalBeforeIgv / 1.18
-  const subtotal = subtotalBeforeIgv - igv
-  const grandTotal = subtotalBeforeIgv + igv + deliveryCost
   const hasDiscountItems = cart.filter(i => i.hasDiscount)
+  const grandTotal = total
 
-  const handleAddToCart = (product: Product) => {
+  const getStockForProduct = (productId: string) => {
+    const product = products.find(p => p.id === productId)
+    return product?.inventory.find(inv => inv.locationId === locationId)?.stock || 0
+  }
+
+  const exceedsStockItems = cart.filter(item => {
+    const stock = getStockForProduct(item.productId)
+    return item.quantity > stock
+  })
+
+  const handleQuantityChange = (productId: string, newQuantity: number, currentStock: number) => {
+    if (newQuantity > currentStock) {
+      updateQuantity(productId, currentStock)
+      Swal.fire({
+        title: 'Stock insuficiente',
+        text: `Solo quedan ${currentStock} unidades.`,
+        icon: 'warning',
+        background: '#0a0a0a',
+        color: '#ffffff',
+        confirmButtonColor: '#00f7ff',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 2500,
+      })
+    } else {
+      updateQuantity(productId, newQuantity)
+    }
+  }
+
+  const handleToggleCart = (product: Product) => {
     const existing = cart.find(i => i.productId === product.id)
     if (existing) {
-      updateQuantity(product.id, existing.quantity + 1)
+      removeFromCart(product.id)
     } else {
       addToCart({
         productId: product.id,
@@ -121,6 +150,7 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
         name: product.name,
         brand: product.brand,
         model: product.model,
+        imageUrl: product.imageUrl,
         quantity: 1,
         unitPrice: product.pricePen,
         basePrice: product.pricePen
@@ -381,46 +411,66 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
             {filteredProducts.map(product => {
               const stock = product.inventory.find(inv => inv.locationId === locationId)?.stock || 0
               const inCart = cart.find(i => i.productId === product.id)
+              const isAgotado = stock === 0
 
               return (
                 <button
                   key={product.id}
-                  onClick={() => handleAddToCart(product)}
-                  disabled={stock === 0}
+                  onClick={() => !isAgotado && handleToggleCart(product)}
+                  disabled={isAgotado}
                   className={cn(
-                    "relative flex flex-col justify-between p-5 rounded-2xl text-left transition-all duration-200",
+                    "relative flex flex-col p-5 rounded-2xl text-left transition-all duration-200",
                     "border backdrop-blur-xl",
-                    stock === 0
-                      ? "border-gray-800/50 opacity-40 cursor-not-allowed"
+                    isAgotado
+                      ? "border-gray-800/50 opacity-40 cursor-not-allowed pointer-events-none grayscale"
                       : inCart
-                      ? "border-primary/60 bg-primary/5"
+                      ? "border-primary/60 bg-primary/5 shadow-[0_0_20px_rgba(0,247,255,0.15)]"
                       : "border-gray-800/60 hover:border-primary/40 hover:bg-primary/5 hover:scale-[1.01]",
                   )}
                   style={{ minHeight: '180px' }}
                 >
-                  {inCart && (
-                    <span className="absolute top-3 right-3 text-[10px] font-bold text-primary bg-primary/20 px-2 py-0.5 rounded-full">
-                      {inCart.quantity} en cart
-                    </span>
-                  )}
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className="w-14 h-14 rounded-xl border border-border bg-card overflow-hidden shrink-0">
+                      {product.imageUrl ? (
+                        <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-foreground/5 flex items-center justify-center">
+                          <Package size={20} className="text-muted-foreground/30" />
+                        </div>
+                      )}
+                    </div>
 
-                  <div className="space-y-1 flex-1">
-                    <p className="text-[9px] font-mono text-primary/50 uppercase tracking-wider">{product.sku}</p>
-                    <h4 className="font-bold text-sm leading-tight line-clamp-2 text-gray-100">{productName(product)}</h4>
-                    <p className="text-[9px] text-gray-500 uppercase tracking-wider">{product.category}</p>
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <p className="text-[9px] font-mono text-primary/50 uppercase tracking-wider">{product.sku}</p>
+                      <h4 className="font-bold text-sm leading-tight line-clamp-2 text-gray-100">{productName(product)}</h4>
+                      <p className="text-[9px] text-gray-500 uppercase tracking-wider">{product.category}</p>
+                    </div>
                   </div>
 
                   <div className="flex items-end justify-between mt-3 pt-3 border-t border-gray-800/50">
                     <span className="text-xl font-black text-primary bg-transparent">
                       S/ {product.pricePen.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
                     </span>
-                    <span className={cn(
-                      "text-[10px] font-bold uppercase tracking-wider bg-transparent",
-                      stock > 10 ? "text-emerald-400" : stock > 0 ? "text-amber-400" : "text-rose-400"
-                    )}>
-                      {stock} und
-                    </span>
+                    {isAgotado ? (
+                      <span className="text-[10px] font-bold uppercase tracking-wider bg-transparent text-rose-400 border border-rose-400/30 px-2 py-1 rounded-lg">
+                        AGOTADO
+                      </span>
+                    ) : (
+                      <span className={cn(
+                        "text-[10px] font-bold uppercase tracking-wider bg-transparent",
+                        stock > 10 ? "text-emerald-400" : stock > 0 ? "text-amber-400" : "text-rose-400"
+                      )}>
+                        {stock} und
+                      </span>
+                    )}
                   </div>
+
+                  {inCart && (
+                    <span className="absolute top-3 right-3 text-[10px] font-bold text-primary bg-primary/20 px-2 py-0.5 rounded-full">
+                      <CheckCircle size={10} className="inline mr-1" />
+                      Seleccionado
+                    </span>
+                  )}
                 </button>
               )
             })}
@@ -527,7 +577,16 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
                   ? "bg-rose-500/5 border-rose-500/20"
                   : "bg-gray-900/20 border-gray-800"
               )}>
-                <div className="flex items-start justify-between mb-2">
+                <div className="flex items-start gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg border border-border bg-card overflow-hidden shrink-0">
+                    {item.imageUrl ? (
+                      <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-foreground/5 flex items-center justify-center">
+                        <Package size={14} className="text-muted-foreground/30" />
+                      </div>
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0 mr-2">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <p className="font-bold text-xs text-gray-100 line-clamp-1">{productName(item)}</p>
@@ -560,14 +619,35 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={() => updateQuantity(item.productId, Math.max(0, item.quantity - 1))}
+                      onClick={() => {
+                        const stock = getStockForProduct(item.productId)
+                        updateQuantity(item.productId, Math.max(1, Math.min(item.quantity - 1, stock)))
+                      }}
                       className="w-7 h-7 rounded-lg bg-gray-800/50 border border-gray-700/50 flex items-center justify-center hover:bg-gray-700/50 transition-all backdrop-blur-sm"
                     >
                       <Minus size={11} className="text-gray-400" />
                     </button>
-                    <span className="font-bold text-sm text-gray-100 w-7 text-center">{item.quantity}</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max={getStockForProduct(item.productId)}
+                      value={item.quantity}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value)
+                        const stock = getStockForProduct(item.productId)
+                        if (!isNaN(val) && val >= 1) {
+                          handleQuantityChange(item.productId, val, stock)
+                        }
+                      }}
+                      className="w-12 text-center bg-transparent border-none focus:ring-1 focus:ring-primary text-white outline-none text-sm font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
                     <button
-                      onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                      onClick={() => {
+                        const stock = getStockForProduct(item.productId)
+                        if (item.quantity < stock) {
+                          updateQuantity(item.productId, item.quantity + 1)
+                        }
+                      }}
                       className="w-7 h-7 rounded-lg bg-gray-800/50 border border-gray-700/50 flex items-center justify-center hover:bg-gray-700/50 transition-all backdrop-blur-sm"
                     >
                       <Plus size={11} className="text-gray-400" />
@@ -617,7 +697,7 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
                 min={0}
                 step={0.5}
                 value={deliveryCost || ''}
-                onChange={(e) => setDeliveryCost(parseFloat(e.target.value) || 0)}
+                onChange={(e) => setDeliveryCost(roundCurrency(parseFloat(e.target.value) || 0))}
                 placeholder="0.00"
                 className="w-full bg-gray-900/50 border border-gray-700/50 rounded-xl py-2.5 pl-10 pr-4 text-sm font-bold text-white placeholder-gray-600 focus:border-purple-500/50 focus:outline-none transition-all"
               />
@@ -631,6 +711,15 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
               <Percent size={13} className="text-rose-400 shrink-0" />
               <span className="text-[10px] font-bold text-rose-400 bg-transparent">
                 {hasDiscountItems.length} producto(s) con precio rebajado
+              </span>
+            </div>
+          )}
+
+          {exceedsStockItems.length > 0 && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-rose-500/20 border border-rose-500/30">
+              <AlertTriangle size={13} className="text-rose-400 shrink-0" />
+              <span className="text-[10px] font-bold text-rose-400 bg-transparent">
+                {exceedsStockItems.length} producto(s) exceden el stock disponible
               </span>
             </div>
           )}
@@ -658,7 +747,7 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
 
           <Button
             onClick={handleCheckout}
-            disabled={cart.length === 0 || isProcessing}
+            disabled={cart.length === 0 || isProcessing || exceedsStockItems.length > 0}
             className="w-full py-4 rounded-xl bg-primary text-primary-foreground font-bold neon-glow hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 text-sm"
           >
             {isProcessing ? (

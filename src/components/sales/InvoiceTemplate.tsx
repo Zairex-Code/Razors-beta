@@ -41,6 +41,9 @@ interface Sale {
   location: {
     id: string
     name: string
+    address?: string | null
+    phone?: string | null
+    email?: string | null
   }
   user: {
     id: string
@@ -349,11 +352,17 @@ export function InvoiceTemplate({ sale, ref }: InvoiceTemplateProps) {
 
       <div className="invoice-header">
         <div className="company-info">
-          <h1>RAZOR CRM</h1>
-          <p>RUC: 20601234567</p>
-          <p>Av. Javier Prado 2150, Lima</p>
-          <p>Telf: (01) 345-6789</p>
-          <p>contacto@razorcrm.com</p>
+          <h1>{sale.location.name}</h1>
+          {sale.location.address && <p>{sale.location.address}</p>}
+          {sale.location.phone && <p>Telf: {sale.location.phone}</p>}
+          {sale.location.email && <p>{sale.location.email}</p>}
+          {!sale.location.address && !sale.location.phone && !sale.location.email && (
+            <>
+              <p>Dirección no registrada</p>
+              <p>Sin teléfono</p>
+              <p>Sin correo</p>
+            </>
+          )}
         </div>
         <div className="invoice-title">
           <h2>FACTURA</h2>
@@ -452,7 +461,8 @@ export function InvoiceTemplate({ sale, ref }: InvoiceTemplateProps) {
       <div className="invoice-footer">
         <p className="thanks">¡Gracias por su compra!</p>
         <p>Este documento es una representación impresa de la factura electrónica</p>
-        <p>Para consultas: contacto@razorcrm.com | (01) 345-6789</p>
+        {sale.location.phone && <p>Para consultas: {sale.location.phone}</p>}
+        {sale.location.email && <p>{sale.location.email}</p>}
       </div>
     </div>
   )
@@ -643,9 +653,10 @@ export function TicketTemplate({ sale, ref }: TicketTemplateProps) {
       `}</style>
 
       <div className="ticket-header">
-        <h1>RAZOR CRM</h1>
-        <p>RUC: 20601234567</p>
-        <p>Av. Javier Prado 2150, Lima</p>
+        <h1>{sale.location.name}</h1>
+        {sale.location.address && <p>{sale.location.address}</p>}
+        {sale.location.phone && <p>Telf: {sale.location.phone}</p>}
+        {sale.location.email && <p>{sale.location.email}</p>}
         <p className="ticket-title">TICKET DE VENTA</p>
         <p>N° {sale.invoiceNumber}</p>
       </div>
@@ -720,7 +731,8 @@ export function TicketTemplate({ sale, ref }: TicketTemplateProps) {
       <div className="ticket-footer">
         <p className="big-thanks">¡Gracias por su compra!</p>
         <p>Conserve este ticket para cualquier reclamo</p>
-        <p>contacto@razorcrm.com</p>
+        {sale.location.phone && <p>{sale.location.phone}</p>}
+        {sale.location.email && <p>{sale.location.email}</p>}
       </div>
     </div>
   )

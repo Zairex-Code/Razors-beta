@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { SaleStatus } from '@prisma/client'
-import { requireAuth, requireBossOrAdmin } from './auth-actions'
+import { requireAuth, requireRole } from './auth-actions'
 import { uploadFileToStorageAdmin } from '@/lib/storage'
 import { roundCurrency } from '@/utils/math'
 
@@ -155,7 +155,7 @@ export async function createSale(data: {
 }
 
 export async function voidSale(saleId: string) {
-  await requireBossOrAdmin()
+  await requireRole(['ADMIN', 'BOSS', 'EMPLOYEE'])
 
   const sale = await prisma.sale.findUnique({
     where: { id: saleId },

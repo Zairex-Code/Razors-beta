@@ -20,7 +20,7 @@ import {
   LogOut,
   Ship,
 } from 'lucide-react'
-import { signOutAction } from '@/app/actions/auth-actions'
+import { signOutAction } from '@/app/actions/signout-action'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'BOSS', 'EMPLOYEE'] },

@@ -1,15 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'motion/react'
 import {
   X,
   CheckCircle,
   Loader2,
   Edit3,
+  Camera,
+  Upload,
 } from 'lucide-react'
-import { createProduct, updateProduct } from '@/app/actions/product-actions'
-import { CreatableSelect } from '@/components/ui/creatable-select'
+import { createProduct, updateProduct, uploadProductImage } from '@/app/actions/product-actions'
+import { SmartSelect } from '@/components/ui/smart-select'
+import { cn } from '@/lib/utils'
 
 interface Product {
   id: string
@@ -19,6 +22,7 @@ interface Product {
   model?: string | null
   category: string
   pricePen: number
+  imageUrl?: string | null
 }
 
 interface ProductModalProps {
@@ -31,8 +35,6 @@ interface ProductModalProps {
   brands?: string[]
   categories?: string[]
 }
-
-const CATEGORIES = ['Máquinas', 'Cuchillas', 'Cosméticos', 'Muebles', 'Peines', 'Otros']
 
 function generateSku(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -51,9 +53,13 @@ export function ProductModal({ isOpen, onClose, mode, product, onCreated, onUpda
   const [name, setName] = useState('')
   const [brand, setBrand] = useState('')
   const [model, setModel] = useState('')
-  const [category, setCategory] = useState('Otros')
+  const [category, setCategory] = useState('')
   const [pricePen, setPricePen] = useState('')
+  const [imageUrl, setImageUrl] = useState<string | undefined>()
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (mode === 'edit' && product) {
@@ -62,14 +68,46 @@ export function ProductModal({ isOpen, onClose, mode, product, onCreated, onUpda
       setModel(product.model || '')
       setCategory(product.category)
       setPricePen(product.pricePen.toString())
+      if (product.imageUrl) {
+        setImageUrl(product.imageUrl)
+        setImagePreview(product.imageUrl)
+      } else {
+        setImageUrl(undefined)
+        setImagePreview(null)
+      }
     } else {
       setName('')
       setBrand('')
       setModel('')
-      setCategory('Otros')
+      setCategory('')
       setPricePen('')
+      setImageUrl(undefined)
+      setImagePreview(null)
     }
   }, [mode, product, isOpen])
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      setImagePreview(ev.target?.result as string)
+    }
+    reader.readAsDataURL(file)
+
+    setIsUploading(true)
+    try {
+      const url = await uploadProductImage(file)
+      setImageUrl(url)
+    } catch (err) {
+      console.error('Error uploading image:', err)
+      setImagePreview(product?.imageUrl || null)
+      setImageUrl(product?.imageUrl ?? undefined)
+    } finally {
+      setIsUploading(false)
+    }
+  }
 
   const handleSubmit = async () => {
     if (!name || !category || !pricePen) return
@@ -83,7 +121,8 @@ export function ProductModal({ isOpen, onClose, mode, product, onCreated, onUpda
           brand: brand || undefined,
           model: model || undefined,
           category,
-          pricePen: parseFloat(pricePen)
+          pricePen: parseFloat(pricePen),
+          imageUrl
         })
         onCreated({ id: newProduct.id, name: newProduct.name, sku: newProduct.sku, category: newProduct.category })
       } else if (mode === 'edit' && product) {
@@ -92,9 +131,10 @@ export function ProductModal({ isOpen, onClose, mode, product, onCreated, onUpda
           brand: brand || undefined,
           model: model || undefined,
           category,
-          pricePen: parseFloat(pricePen)
+          pricePen: parseFloat(pricePen),
+          imageUrl
         })
-        onUpdated({ ...product, name: updated.name, brand: updated.brand, model: updated.model, category: updated.category, pricePen: updated.pricePen })
+        onUpdated({ ...product, name: updated.name, brand: updated.brand, model: updated.model, category: updated.category, pricePen: updated.pricePen, imageUrl: updated.imageUrl })
       }
       onClose()
     } catch (err) {
@@ -102,6 +142,16 @@ export function ProductModal({ isOpen, onClose, mode, product, onCreated, onUpda
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const handleCreateBrand = async (newBrand: string) => {
+    setBrand(newBrand)
+    return newBrand
+  }
+
+  const handleCreateCategory = async (newCategory: string) => {
+    setCategory(newCategory)
+    return newCategory
   }
 
   if (!isOpen) return null
@@ -119,7 +169,7 @@ export function ProductModal({ isOpen, onClose, mode, product, onCreated, onUpda
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="glass-panel p-8 rounded-[2.5rem] border-border/30 relative w-full max-w-md"
+        className="glass-panel p-8 rounded-[2.5rem] border-border/30 relative w-full max-w-md max-h-[90vh] overflow-y-auto"
       >
         <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[60px] rounded-full -mr-16 -mt-16 pointer-events-none" />
 
@@ -143,7 +193,48 @@ export function ProductModal({ isOpen, onClose, mode, product, onCreated, onUpda
             {mode === 'create' ? 'Registra un producto que no existe en el inventario.' : `Editando: ${product?.sku}`}
           </p>
 
-            <div className="space-y-4">
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className={cn(
+              "relative w-full h-40 rounded-2xl border-2 border-dashed cursor-pointer transition-all flex flex-col items-center justify-center gap-3 overflow-hidden",
+              imagePreview
+                ? "border-primary/50 bg-card/50"
+                : "border-primary/40 bg-card/50 hover:border-primary/60 hover:bg-card/70"
+            )}
+          >
+            {imagePreview ? (
+              <>
+                <img src={imagePreview} alt="Preview" className="absolute inset-0 w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                  <span className="text-sm font-bold text-white">Cambiar imagen</span>
+                </div>
+              </>
+            ) : isUploading ? (
+              <div className="flex flex-col items-center gap-2">
+                <Loader2 size={24} className="text-primary animate-spin" />
+                <span className="text-xs text-muted-foreground">Subiendo...</span>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Camera size={20} className="text-primary" />
+                </div>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Upload size={12} />
+                  <span>Subir Imagen del Producto</span>
+                </div>
+              </div>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageSelect}
+              className="hidden"
+            />
+          </div>
+
+          <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Nombre</label>
               <input
@@ -158,13 +249,13 @@ export function ProductModal({ isOpen, onClose, mode, product, onCreated, onUpda
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Marca</label>
-                <CreatableSelect
+                <SmartSelect
+                  label="Marca"
                   value={brand}
                   onChange={setBrand}
                   options={brands}
+                  onCreateNew={handleCreateBrand}
                   placeholder="Seleccionar marca..."
-                  className="w-full"
                 />
               </div>
               <div className="space-y-2">
@@ -180,13 +271,13 @@ export function ProductModal({ isOpen, onClose, mode, product, onCreated, onUpda
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Categoría</label>
-              <CreatableSelect
+              <SmartSelect
+                label="Categoría"
                 value={category}
                 onChange={setCategory}
                 options={categories}
+                onCreateNew={handleCreateCategory}
                 placeholder="Seleccionar categoría..."
-                className="w-full"
               />
             </div>
 

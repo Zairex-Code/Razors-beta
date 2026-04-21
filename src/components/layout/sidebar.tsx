@@ -16,8 +16,9 @@ import {
   Ship,
   ShieldAlert,
   UserCog,
+  MapPin,
 } from 'lucide-react'
-import { signOutAction } from '@/app/actions/auth-actions'
+import { signOutAction } from '@/app/actions/signout-action'
 
 const navigation = [
   { name: 'Panel', href: '/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'BOSS', 'EMPLOYEE'] },
@@ -31,6 +32,7 @@ const navigation = [
 
 const adminNavigation = [
   { name: 'Gestión de Usuarios', href: '/dashboard/users', icon: UserCog, roles: ['ADMIN'] },
+  { name: 'Sedes y Locales', href: '/dashboard/locations', icon: MapPin, roles: ['ADMIN', 'BOSS'] },
   { name: 'Configuración del Sistema', href: '/dashboard/settings', icon: Settings, roles: ['ADMIN'] },
   { name: 'Registros de Seguridad', href: '/dashboard/logs', icon: ShieldAlert, roles: ['ADMIN'] },
 ]

@@ -1,21 +1,27 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { motion } from 'motion/react'
 import {
   X,
   CheckCircle,
   Loader2,
+  Camera,
+  Upload,
 } from 'lucide-react'
-import { createProduct } from '@/app/actions/product-actions'
+import { createProduct, uploadProductImage } from '@/app/actions/product-actions'
+import { SmartCombobox } from '@/components/ui/smart-combobox'
+import { cn } from '@/lib/utils'
 
 interface AddProductModalProps {
   isOpen: boolean
   onClose: () => void
-  onCreated: (product: { id: string, name: string, sku: string, category: string }) => void
+  onCreated: (product: { id: string, name: string, sku: string, brand?: string, model?: string, category: string, imageUrl?: string }) => void
+  brands?: string[]
+  categories?: string[]
 }
 
-const CATEGORIES = ['Máquinas', 'Cuchillas', 'Cosméticos', 'Muebles', 'Peines', 'Otros']
+const DEFAULT_CATEGORIES = ['Máquinas', 'Cuchillas', 'Cosméticos', 'Muebles', 'Peines', 'Accesorios', 'Otros']
 
 function generateSku(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -30,13 +36,42 @@ function generateSku(): string {
   return sku
 }
 
-export function AddProductModal({ isOpen, onClose, onCreated }: AddProductModalProps) {
+export function AddProductModal({ isOpen, onClose, onCreated, brands = [], categories = [] }: AddProductModalProps) {
   const [name, setName] = useState('')
   const [brand, setBrand] = useState('')
   const [model, setModel] = useState('')
   const [category, setCategory] = useState('Otros')
   const [pricePen, setPricePen] = useState('')
+  const [imageUrl, setImageUrl] = useState<string | undefined>()
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const categoryOptions = categories.length > 0 ? categories : DEFAULT_CATEGORIES
+  const brandOptions = brands
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      setImagePreview(ev.target?.result as string)
+    }
+    reader.readAsDataURL(file)
+
+    setIsUploading(true)
+    try {
+      const url = await uploadProductImage(file)
+      setImageUrl(url)
+    } catch (err) {
+      console.error('Error uploading image:', err)
+      setImagePreview(null)
+    } finally {
+      setIsUploading(false)
+    }
+  }
 
   const handleCreate = async () => {
     if (!name || !category || !pricePen) return
@@ -49,14 +84,17 @@ export function AddProductModal({ isOpen, onClose, onCreated }: AddProductModalP
         brand: brand || undefined,
         model: model || undefined,
         category,
-        pricePen: parseFloat(pricePen)
+        pricePen: parseFloat(pricePen),
+        imageUrl
       })
-      onCreated({ id: product.id, name: product.name, sku: product.sku, category: product.category })
+      onCreated({ id: product.id, name: product.name, sku: product.sku, brand: product.brand ?? undefined, model: product.model ?? undefined, category: product.category, imageUrl: product.imageUrl ?? undefined })
       setName('')
       setBrand('')
       setModel('')
       setCategory('Otros')
       setPricePen('')
+      setImageUrl(undefined)
+      setImagePreview(null)
       onClose()
     } catch (err) {
       console.error(err)
@@ -78,7 +116,7 @@ export function AddProductModal({ isOpen, onClose, onCreated }: AddProductModalP
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="glass-panel p-8 rounded-[2.5rem] border-border/30 relative w-full max-w-md"
+        className="glass-panel p-8 rounded-[2.5rem] border-border/30 relative w-full max-w-md max-h-[90vh] overflow-y-auto"
       >
         <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[60px] rounded-full -mr-16 -mt-16 pointer-events-none" />
 
@@ -95,7 +133,48 @@ export function AddProductModal({ isOpen, onClose, onCreated }: AddProductModalP
 
           <p className="text-muted-foreground text-sm">Registra un producto que no existe en el inventario.</p>
 
-            <div className="space-y-4">
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className={cn(
+              "relative w-full h-40 rounded-2xl border-2 border-dashed cursor-pointer transition-all flex flex-col items-center justify-center gap-3 overflow-hidden",
+              imagePreview
+                ? "border-primary/50 bg-card/50"
+                : "border-primary/40 bg-card/50 hover:border-primary/60 hover:bg-card/70"
+            )}
+          >
+            {imagePreview ? (
+              <>
+                <img src={imagePreview} alt="Preview" className="absolute inset-0 w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                  <span className="text-sm font-bold text-white">Cambiar imagen</span>
+                </div>
+              </>
+            ) : isUploading ? (
+              <div className="flex flex-col items-center gap-2">
+                <Loader2 size={24} className="text-primary animate-spin" />
+                <span className="text-xs text-muted-foreground">Subiendo...</span>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Camera size={20} className="text-primary" />
+                </div>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Upload size={12} />
+                  <span>Subir Imagen del Producto</span>
+                </div>
+              </div>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageSelect}
+              className="hidden"
+            />
+          </div>
+
+          <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Nombre</label>
               <input
@@ -110,13 +189,12 @@ export function AddProductModal({ isOpen, onClose, onCreated }: AddProductModalP
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Marca</label>
-                <input
-                  type="text"
+                <SmartCombobox
+                  label="Marca"
                   value={brand}
-                  onChange={(e) => setBrand(e.target.value)}
+                  onChange={setBrand}
+                  options={brandOptions}
                   placeholder="Wahl, Babyliss..."
-                  className="w-full glass-input rounded-xl py-3 px-4 text-sm"
                 />
               </div>
               <div className="space-y-2">
@@ -132,17 +210,13 @@ export function AddProductModal({ isOpen, onClose, onCreated }: AddProductModalP
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Categoría</label>
-              <select
-                required
+              <SmartCombobox
+                label="Categoría"
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full glass-input rounded-xl py-3 px-4 text-sm bg-[#0a0a0a] text-white appearance-none"
-              >
-                {CATEGORIES.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
+                onChange={setCategory}
+                options={categoryOptions}
+                placeholder="Seleccionar categoría..."
+              />
             </div>
 
             <div className="space-y-2">

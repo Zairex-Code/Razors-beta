@@ -26,10 +26,10 @@ export default async function SalesPage({
     prisma.customer.findMany({
       orderBy: { name: 'asc' }
     }),
-    prisma.location.findMany()
+    prisma.location.findMany({ where: { isActive: true } })
   ])
 
-  const defaultLocation = locations[0]
+  const defaultLocation = locations.find(l => l.type === 'STORE') || locations[0]
 
   return (
     <SalesPageClient

@@ -20,8 +20,14 @@ model User {
 }
 
 model Location {
-  id        String      @id @default(uuid())
+  id        String       @id @default(uuid())
   name      String
+  type      LocationType @default(STORE)
+  address   String?
+  phone     String?
+  email     String?
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
   inventory Inventory[]
   sales     Sale[]
 }
@@ -34,6 +40,7 @@ model Product {
   model       String?
   category    String
   pricePen    Float
+  imageUrl    String?
   isActive    Boolean      @default(true)
   importItems ImportItem[]
   inventory   Inventory[]
@@ -107,6 +114,7 @@ model Sale {
   paymentMethod  String     @default("EFECTIVO")
   isDelivery     Boolean    @default(false)
   deliveryCost   Float      @default(0)
+  voucherUrl     String?
   userId         String
   customerId     String
   locationId     String
@@ -166,4 +174,9 @@ enum SaleStatus {
   PAID
   PENDING
   VOID
+}
+
+enum LocationType {
+  WAREHOUSE
+  STORE
 }

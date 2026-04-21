@@ -4,7 +4,10 @@ export interface ImportProduct {
   productId: string
   sku: string
   name: string
+  brand?: string
+  model?: string
   category: string
+  imageUrl?: string
   quantity: number
   unitPriceUsd: number
 }

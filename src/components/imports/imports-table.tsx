@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useMemo, useTransition } from 'react'
+import { useState, useMemo, useTransition, Fragment } from 'react'
 import { cn } from '@/lib/utils'
-import { format } from 'date-fns'
+import { format, subDays, subMonths, startOfYear, isAfter } from 'date-fns'
 import { es } from 'date-fns/locale'
 import {
   Search,
@@ -18,9 +18,17 @@ import {
   Paperclip,
   Plus,
   Loader2,
+  Filter,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { updateImportStatus, deleteImport, deleteDocument, clearCostVoucher } from '@/app/actions/import-actions'
 import type { ImportStatus } from '@prisma/client'
 
@@ -137,15 +145,39 @@ function getUnifiedDocuments(imp: Import): UnifiedDocument[] {
 
 export function ImportsTable({ imports, onStatusChange, isProcessing = false }: ImportsTableProps) {
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('Todos los estados')
+  const [dateFilter, setDateFilter] = useState<string>('Cualquier fecha')
   const [selectedImportId, setSelectedImportId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [uploadingDocs, setUploadingDocs] = useState<string | null>(null)
 
-  const filteredImports = imports.filter(
-    (imp) =>
-      imp.provider.toLowerCase().includes(search.toLowerCase()) ||
-      imp.piNumber.toLowerCase().includes(search.toLowerCase())
-  )
+  const filteredImports = useMemo(() => {
+    return imports.filter((imp) => {
+      const q = search.toLowerCase()
+      const matchesSearch = !q ||
+        imp.provider.toLowerCase().includes(q) ||
+        imp.piNumber.toLowerCase().includes(q)
+
+      const matchesStatus = statusFilter === 'Todos los estados' ||
+        STATUS_CONFIG[imp.status as ImportStatus]?.label === statusFilter
+
+      const createdAt = new Date(imp.createdAt)
+      const matchesDate = (() => {
+        switch (dateFilter) {
+          case 'Últimos 30 días':
+            return isAfter(createdAt, subDays(new Date(), 30))
+          case 'Últimos 3 meses':
+            return isAfter(createdAt, subMonths(new Date(), 3))
+          case 'Este año':
+            return isAfter(createdAt, startOfYear(new Date()))
+          default:
+            return true
+        }
+      })()
+
+      return matchesSearch && matchesStatus && matchesDate
+    })
+  }, [imports, search, statusFilter, dateFilter])
 
   const getStepStatus = (statusLabel: ImportStatus, stepLabel: ImportStatus) => {
     const statuses = TIMELINE_STEPS as ImportStatus[]
@@ -271,7 +303,7 @@ export function ImportsTable({ imports, onStatusChange, isProcessing = false }: 
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
         <div className="relative group flex-1 max-w-md">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/30 group-focus-within:text-primary transition-colors" size={20} />
           <Input
@@ -281,6 +313,38 @@ export function ImportsTable({ imports, onStatusChange, isProcessing = false }: 
             onChange={(e) => setSearch(e.target.value)}
             className="w-full glass-input rounded-2xl py-3.5 pl-12 pr-4 text-sm"
           />
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Select value={statusFilter} onValueChange={(val) => val && setStatusFilter(val)}>
+              <SelectTrigger className="w-[180px] bg-card border-border text-card-foreground hover:border-primary/50 focus:ring-primary/20 rounded-xl text-sm font-medium">
+                <Filter size={14} className="mr-2 text-muted-foreground" />
+                <SelectValue placeholder="Estado" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover border-border backdrop-blur-xl shadow-xl">
+                <SelectItem value="Todos los estados">Todos los estados</SelectItem>
+                <SelectItem value="Planificación">Planificación</SelectItem>
+                <SelectItem value="Despachado">Despachado</SelectItem>
+                <SelectItem value="En Tránsito">En Tránsito</SelectItem>
+                <SelectItem value="Entregado">Entregado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="relative">
+            <Select value={dateFilter} onValueChange={(val) => val && setDateFilter(val)}>
+              <SelectTrigger className="w-[160px] bg-card border-border text-card-foreground hover:border-primary/50 focus:ring-primary/20 rounded-xl text-sm font-medium">
+                <SelectValue placeholder="Fecha" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover border-border backdrop-blur-xl shadow-xl">
+                <SelectItem value="Cualquier fecha">Cualquier fecha</SelectItem>
+                <SelectItem value="Últimos 30 días">Últimos 30 días</SelectItem>
+                <SelectItem value="Últimos 3 meses">Últimos 3 meses</SelectItem>
+                <SelectItem value="Este año">Este año</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -361,9 +425,8 @@ export function ImportsTable({ imports, onStatusChange, isProcessing = false }: 
                   const mobilityCost = imp.costs.filter(c => c.category === 'MOBILITY').reduce((acc, c) => acc + c.amount, 0)
 
                   return (
-                    <>
+                    <Fragment key={imp.id}>
                       <tr
-                        key={imp.id}
                         onClick={() => setSelectedImportId(isSelected ? null : imp.id)}
                         className={cn(
                           "cursor-pointer transition-all duration-300",
@@ -648,9 +711,9 @@ export function ImportsTable({ imports, onStatusChange, isProcessing = false }: 
                           </div>
                           </td>
                         </tr>
-                        )}
-                      </>
-                    )
+                      )}
+                    </Fragment>
+                  )
                   })}
                 </tbody>
             </table>

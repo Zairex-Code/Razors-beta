@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { requireBossOrAdmin } from './auth-actions'
+import { roundCurrency } from '@/utils/math'
 
 export async function getExpenses(status?: string) {
   return prisma.expense.findMany({
@@ -30,7 +31,7 @@ export async function createExpense(data: {
     data: {
       category: data.category,
       description: data.description,
-      amountPen: data.amountPen,
+      amountPen: roundCurrency(data.amountPen),
       status: data.status,
       voucherUrl: data.voucherUrl
     }

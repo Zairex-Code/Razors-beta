@@ -145,18 +145,18 @@ export function FileUploader({
       <div className={cn('flex items-center gap-4 p-4 rounded-xl bg-primary/5 border border-primary/20', className)}>
         {getFileIcon(uploadedFile.name)}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-white truncate">{uploadedFile.name}</p>
-          <p className="text-xs text-gray-500">
+          <p className="text-sm font-medium text-foreground truncate">{uploadedFile.name}</p>
+          <p className="text-xs text-muted-foreground">
             {(uploadedFile.size / 1024).toFixed(1)} KB
           </p>
         </div>
         <button
           onClick={handleRemove}
-          className="p-2 rounded-lg hover:bg-red-500/10 text-gray-400 hover:text-red-400 transition-colors"
+          className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
         >
           <X className="w-4 h-4" />
         </button>
-        <CheckCircle className="w-5 h-5 text-green-400" />
+        <CheckCircle className="w-5 h-5 text-green-500" />
       </div>
     )
   }
@@ -171,7 +171,7 @@ export function FileUploader({
           'relative border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center gap-4 transition-all cursor-pointer',
           isDragging
             ? 'border-primary bg-primary/5'
-            : 'border-gray-700 hover:border-primary/50 hover:bg-foreground/5',
+            : 'border-input hover:border-primary/50 hover:bg-secondary/30',
           isUploading && 'opacity-50 pointer-events-none'
         )}
       >
@@ -186,19 +186,19 @@ export function FileUploader({
         {isUploading ? (
           <>
             <Loader2 className="w-10 h-10 text-primary animate-spin" />
-            <p className="text-sm text-gray-400">Subiendo...</p>
+            <p className="text-sm text-muted-foreground">Subiendo...</p>
           </>
         ) : (
           <>
             <div className={cn(
               'w-14 h-14 rounded-full flex items-center justify-center transition-colors',
-              isDragging ? 'bg-primary/20 text-primary' : 'bg-foreground/5 text-gray-500'
+              isDragging ? 'bg-primary/20 text-primary' : 'bg-secondary/30 text-muted-foreground'
             )}>
               <Upload className="w-6 h-6" />
             </div>
             <div className="text-center">
-              <p className="text-sm font-medium text-white">Arrastrar y soltar o hacer clic para subir</p>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-sm font-medium text-foreground">Arrastrar y soltar o hacer clic para subir</p>
+              <p className="text-xs text-muted-foreground mt-1">
                 Máx {(maxSize / 1024 / 1024).toFixed(0)}MB
               </p>
             </div>
@@ -207,7 +207,7 @@ export function FileUploader({
       </div>
 
       {error && (
-        <p className="mt-2 text-xs text-red-400">{error}</p>
+        <p className="mt-2 text-xs text-destructive">{error}</p>
       )}
     </div>
   )
@@ -245,12 +245,12 @@ export function MultiFileUploader({
         <div key={file.url} className="flex items-center gap-4 p-4 rounded-xl bg-primary/5 border border-primary/20">
           <FileText className="w-6 h-6 text-primary shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">{file.name}</p>
-            <p className="text-xs text-gray-500">{(file.size / 1024).toFixed(1)} KB</p>
+            <p className="text-sm font-medium text-foreground truncate">{file.name}</p>
+            <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
           </div>
           <button
             onClick={() => handleRemove(file.url)}
-            className="p-2 rounded-lg hover:bg-red-500/10 text-gray-400 hover:text-red-400 transition-colors"
+            className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
           >
             <X className="w-4 h-4" />
           </button>

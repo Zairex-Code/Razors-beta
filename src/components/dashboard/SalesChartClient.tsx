@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   AreaChart,
   Area,
@@ -16,6 +16,10 @@ import {
   parseISO,
   isValid,
   getWeek,
+  subDays,
+  startOfDay,
+  eachDayOfInterval,
+  differenceInDays,
 } from 'date-fns'
 import { es } from 'date-fns/locale'
 
@@ -40,7 +44,31 @@ const TIME_FILTERS: { key: TimeFilter; label: string }[] = [
 ]
 
 function groupByPeriod(data: SaleData[], filter: TimeFilter): ChartDataPoint[] {
-  if (data.length === 0) return []
+  const now = new Date()
+
+  if (filter === 'DIARIO') {
+    const last7Days = eachDayOfInterval({
+      start: subDays(now, 6),
+      end: now,
+    })
+
+    const salesByDay = data.reduce((acc: Map<string, number>, sale) => {
+      const date = typeof sale.date === 'string' ? parseISO(sale.date) : sale.date
+      if (!isValid(date)) return acc
+      const dayKey = format(startOfDay(date), 'yyyy-MM-dd')
+      acc.set(dayKey, (acc.get(dayKey) || 0) + sale.totalAmount)
+      return acc
+    }, new Map())
+
+    return last7Days.map((day) => {
+      const dayKey = format(day, 'yyyy-MM-dd')
+      const dayLabel = format(day, 'EEE dd', { locale: es })
+      return {
+        label: dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1),
+        sales: salesByDay.get(dayKey) || 0,
+      }
+    })
+  }
 
   const grouped = data.reduce((acc: Map<string, number>, sale) => {
     const date = typeof sale.date === 'string' ? parseISO(sale.date) : sale.date
@@ -48,14 +76,11 @@ function groupByPeriod(data: SaleData[], filter: TimeFilter): ChartDataPoint[] {
 
     let key: string
     switch (filter) {
-      case 'DIARIO':
-        key = format(date, 'EEE dd', { locale: es })
-        break
       case 'SEMANAL':
         key = `Sem ${getWeek(date)}`
         break
       case 'MENSUAL':
-        key = format(date, 'MMM', { locale: es })
+        key = format(date, 'MMM yyyy', { locale: es })
         break
       case 'TRIMESTRAL':
         key = `Q${Math.ceil((date.getMonth() + 1) / 3)} ${format(date, 'yyyy')}`
@@ -64,7 +89,7 @@ function groupByPeriod(data: SaleData[], filter: TimeFilter): ChartDataPoint[] {
         key = format(date, 'yyyy')
         break
       default:
-        key = format(date, 'MMM')
+        key = format(date, 'MMM yyyy', { locale: es })
     }
 
     acc.set(key, (acc.get(key) || 0) + sale.totalAmount)
@@ -89,10 +114,23 @@ interface SalesChartClientProps {
 
 export function SalesChartClient({ rawData }: SalesChartClientProps) {
   const [activeFilter, setActiveFilter] = useState<TimeFilter>('MENSUAL')
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   const chartData = useMemo(() => {
     return groupByPeriod(rawData, activeFilter)
   }, [rawData, activeFilter])
+
+  if (!isMounted) {
+    return (
+      <div className="h-[350px] w-full animate-pulse bg-card/50 rounded-xl flex items-center justify-center">
+        <div className="text-muted-foreground text-sm">Cargando gráfico...</div>
+      </div>
+    )
+  }
 
   if (chartData.length === 0) {
     return (

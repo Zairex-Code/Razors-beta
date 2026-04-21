@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import {
   AreaChart,
   Area,
@@ -31,6 +32,16 @@ const revenueChartConfig = {
 } satisfies ChartConfig
 
 export function RevenueChart({ data }: RevenueChartProps) {
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  if (!isMounted) {
+    return <div className="w-full h-full animate-pulse bg-card/50 rounded-xl" />
+  }
+
   return (
     <ChartContainer config={revenueChartConfig} className="w-full h-full">
       <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
@@ -81,10 +92,20 @@ const topSalesConfig = {
 } satisfies ChartConfig
 
 export function TopSalesChart({ topProducts }: TopSalesChartProps) {
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
   const data = topProducts.slice(0, 5).map((p) => ({
     name: p.name.length > 16 ? p.name.substring(0, 16) + '…' : p.name,
     quantity: p.quantity,
   }))
+
+  if (!isMounted) {
+    return <div className="w-full h-full animate-pulse bg-card/50 rounded-xl" />
+  }
 
   return (
     <ChartContainer config={topSalesConfig} className="w-full h-full">
@@ -110,7 +131,17 @@ const stockDonutConfig = {
 const CATEGORY_COLORS = ['#00f7ff', '#0891b2', '#a855f7', '#64748b']
 
 export function StockDonutChart({ data }: StockDonutChartProps) {
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
   const total = data.reduce((acc, d) => acc + d.value, 0)
+
+  if (!isMounted) {
+    return <div className="w-full h-full animate-pulse bg-card/50 rounded-xl" />
+  }
 
   return (
     <ChartContainer config={stockDonutConfig} className="w-full h-full">

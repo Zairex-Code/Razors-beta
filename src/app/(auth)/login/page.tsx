@@ -36,15 +36,18 @@ export default function LoginPage() {
       return
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error, data } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
+
+    console.log('[LOGIN] signInWithPassword result:', { error, userId: data?.user?.id })
 
     if (error) {
       setError('Credenciales inválidas. Por favor, intente de nuevo.')
       setLoading(false)
     } else {
+      console.log('[LOGIN] Success, redirecting to /dashboard')
       window.location.href = '/dashboard'
     }
   }

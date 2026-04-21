@@ -1,59 +1,31 @@
-'use server'
-
-import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/utils/supabase/server'
 import { Role } from '@prisma/client'
 
-export async function signOutAction() {
-  const supabase = await createClient()
-  await supabase.auth.signOut()
-  redirect('/login')
-}
+export async function getSessionUser() {
+  const cookieStore = await cookies()
+  const userId = cookieStore.get('x-user-id')?.value
+  const userRole = cookieStore.get('x-user-role')?.value as Role | undefined
 
-export async function getSession() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  return user
-}
+  if (!userId) {
+    return null
+  }
 
-export async function getUserWithRole() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) return null
-
-  const dbUser = await prisma.user.findUnique({
-    where: { email: user.email },
-    select: { id: true, name: true, email: true, role: true, isActive: true }
-  })
-
-  return dbUser
+  return { id: userId, role: userRole! }
 }
 
 export async function requireAuth() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser()
 
   if (!user) {
     throw new Error('No autenticado')
   }
 
-  const dbUser = await prisma.user.findUnique({
-    where: { email: user.email },
-    select: { id: true, role: true, isActive: true }
-  })
+  return user
+}
 
-  if (!dbUser) {
-    throw new Error('Usuario no encontrado')
-  }
-
-  if (!dbUser.isActive) {
-    throw new Error('Usuario desactivado')
-  }
-
-  return dbUser
+export async function getUserWithRole() {
+  return getSessionUser()
 }
 
 export async function requireRole(allowedRoles: Role[]) {

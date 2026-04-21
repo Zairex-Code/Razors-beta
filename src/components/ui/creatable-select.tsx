@@ -48,33 +48,33 @@ export function CreatableSelect({ value, onChange, options, placeholder = 'Selec
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          'w-full flex items-center justify-between gap-2 rounded-xl border border-gray-700/50 bg-gray-900/30 py-3 px-4 text-sm transition-all',
-          'hover:border-primary/50 focus:outline-none focus:border-primary/50',
-          isOpen && 'border-primary/50'
+          'w-full flex items-center justify-between gap-2 rounded-xl border border-input bg-popover/30 py-3 px-4 text-sm transition-all',
+          'hover:bg-popover/50 focus:outline-none focus:border-primary/50',
+          isOpen && 'border-primary/50 bg-popover/50'
         )}
       >
-        <span className={value ? 'text-white' : 'text-gray-500'}>
+        <span className={value ? 'text-foreground' : 'text-muted-foreground'}>
           {value || placeholder}
         </span>
-        <ChevronDownIcon className={cn('size-4 text-gray-500 transition-transform', isOpen && 'rotate-180')} />
+        <ChevronDownIcon className={cn('size-4 text-muted-foreground transition-transform', isOpen && 'rotate-180')} />
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-[#0a0a0a] border border-gray-700/50 rounded-xl overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.5)]">
-          <div className="p-2 border-b border-gray-800/50">
+        <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-popover border border-border rounded-xl shadow-xl backdrop-blur-xl overflow-hidden">
+          <div className="p-2 border-b border-border">
             <input
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder="Buscar o escribir nuevo..."
-              className="w-full bg-transparent border-none outline-none text-sm text-white placeholder:text-gray-500 px-2 py-1.5"
+              className="w-full bg-transparent border-none outline-none text-sm text-popover-foreground placeholder-muted-foreground px-2 py-1.5"
               autoFocus
             />
           </div>
 
           <div className="max-h-48 overflow-y-auto p-1">
             {filtered.length === 0 && inputValue.length === 0 && (
-              <p className="px-3 py-2 text-xs text-gray-500">Sin opciones</p>
+              <p className="px-3 py-2 text-xs text-muted-foreground">Sin opciones</p>
             )}
 
             {filtered.map((option) => (
@@ -84,7 +84,7 @@ export function CreatableSelect({ value, onChange, options, placeholder = 'Selec
                 onClick={() => { onChange(option); setIsOpen(false) }}
                 className={cn(
                   'w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm text-left transition-colors',
-                  'hover:bg-primary/10 text-gray-300 hover:text-white',
+                  'hover:bg-secondary/50 text-popover-foreground',
                   option === value && 'bg-primary/20 text-primary'
                 )}
               >
@@ -105,7 +105,7 @@ export function CreatableSelect({ value, onChange, options, placeholder = 'Selec
             )}
 
             {showAdd && (
-              <div className="p-2 border-t border-gray-800/50">
+              <div className="p-2 border-t border-border">
                 <div className="flex gap-2">
                   <Input
                     value={inputValue}
@@ -115,7 +115,7 @@ export function CreatableSelect({ value, onChange, options, placeholder = 'Selec
                   <button
                     type="button"
                     onClick={handleAdd}
-                    className="h-8 px-3 rounded-lg bg-primary text-black text-xs font-bold hover:brightness-110 transition-all"
+                    className="h-8 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:brightness-110 transition-all"
                   >
                     Agregar
                   </button>

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { ArrowRight, Package, Search, ArrowLeftRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { transferStock } from '@/app/actions/location-actions'
+import { createTransfer } from '@/app/actions/location-actions'
 
 type Location = {
   id: string
@@ -73,7 +73,7 @@ export default function TransfersPageClient({
     setSuccess(false)
 
     try {
-      await transferStock({
+      await createTransfer({
         productId: selectedProduct,
         fromLocationId: fromLocation,
         toLocationId: toLocation,
