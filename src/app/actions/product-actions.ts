@@ -195,9 +195,18 @@ export async function updateProduct(id: string, data: {
   brand?: string
   model?: string
   category: string
-  pricePen: number
+  pricePen?: number
+  costPen?: number
   imageUrl?: string
 }) {
+  let finalPricePen = data.pricePen
+
+  if (data.costPen !== undefined && data.pricePen === undefined) {
+    const profitMargin = await getProfitMargin()
+    const rawPrice = data.costPen * (1 + (profitMargin / 100))
+    finalPricePen = Math.ceil(rawPrice)
+  }
+
   const product = await prisma.product.update({
     where: { id },
     data: {
@@ -205,13 +214,21 @@ export async function updateProduct(id: string, data: {
       brand: data.brand || null,
       model: data.model || null,
       category: data.category,
-      pricePen: data.pricePen,
+      pricePen: finalPricePen,
+      costPen: data.costPen,
       imageUrl: data.imageUrl || null
     }
   })
 
   revalidatePath('/dashboard/inventory')
   return product
+}
+
+async function getProfitMargin(): Promise<number> {
+  const setting = await prisma.systemSetting.findUnique({
+    where: { key: 'PROFIT_MARGIN' }
+  })
+  return setting ? parseFloat(setting.value) : 30
 }
 
 export async function deleteProduct(id: string, force: boolean = false) {
