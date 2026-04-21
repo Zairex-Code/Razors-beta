@@ -39,6 +39,7 @@ interface InventoryItem {
     location: {
       id: string
       name: string
+      type: 'WAREHOUSE' | 'STORE'
     }
   }>
 }

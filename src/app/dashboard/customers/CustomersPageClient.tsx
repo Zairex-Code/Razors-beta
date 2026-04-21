@@ -56,9 +56,22 @@ export default function CustomersPageClient({ initialCustomers }: CustomersPageC
   const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  const handleCustomerCreated = (customer: Customer) => {
+  const handleCustomerCreated = (customer: {
+    id: string
+    docType: string
+    docNumber: string
+    name: string
+    email: string | null
+    phone: string | null
+    address: string | null
+  }) => {
+    const extendedCustomer: Customer = {
+      ...customer,
+      totalPurchases: 0,
+      sales: []
+    }
     setIsAddModalOpen(false)
-    setCustomers(prev => [...prev, customer])
+    setCustomers(prev => [extendedCustomer, ...prev])
     Swal.fire({
       title: 'Creado',
       text: `Cliente ${customer.name} agregado exitosamente.`,
@@ -73,10 +86,18 @@ export default function CustomersPageClient({ initialCustomers }: CustomersPageC
     })
   }
 
-  const handleCustomerUpdated = (updated: Customer) => {
+  const handleCustomerUpdated = (updated: {
+    id: string
+    docType: string
+    docNumber: string
+    name: string
+    email: string | null
+    phone: string | null
+    address: string | null
+  }) => {
     setEditModalOpen(false)
     setCustomerToEdit(null)
-    setCustomers(prev => prev.map(c => c.id === updated.id ? { ...c, ...updated } : c))
+    setCustomers(prev => prev.map(c => c.id === updated.id ? { ...c, ...updated, totalPurchases: c.totalPurchases, sales: c.sales } : c))
     Swal.fire({
       title: 'Actualizado',
       text: `Cliente ${updated.name} actualizado exitosamente.`,
