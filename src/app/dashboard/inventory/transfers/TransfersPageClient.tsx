@@ -237,8 +237,16 @@ export default function TransfersPageClient({
                     type="number"
                     min={1}
                     max={availableStock}
-                    value={quantity}
-                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 0))}
+                    value={quantity === 0 ? '' : quantity}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      setQuantity(val === '' ? 0 : parseInt(val) || 0)
+                    }}
+                    onBlur={(e) => {
+                      if (quantity < 1) {
+                        setQuantity(1)
+                      }
+                    }}
                     className="w-full bg-black/50 border border-gray-800 rounded-xl py-3 px-4 text-white focus:border-primary focus:outline-none transition-all"
                   />
                   {fromLocation && (

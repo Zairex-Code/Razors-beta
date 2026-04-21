@@ -12,6 +12,7 @@ import {
   Eye,
   Trash2,
   X,
+  Repeat,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,6 +26,8 @@ interface Expense {
   amountPen: number
   status: string
   voucherUrl: string | null
+  isRecurring?: boolean
+  recurrenceInterval?: string | null
 }
 
 interface ExpensesTableProps {
@@ -189,7 +192,12 @@ export function ExpensesTable({ expenses }: ExpensesTableProps) {
                             </span>
                           </div>
                           <div className="px-6 py-4 col-span-4">
-                            <span className="text-sm font-medium">{expense.description}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium">{expense.description}</span>
+                              {expense.isRecurring && (
+                                <Repeat size={14} className="text-primary/60" />
+                              )}
+                            </div>
                           </div>
                           <div className="px-6 py-4 col-span-2 text-right">
                             <span className="text-sm font-bold text-foreground">

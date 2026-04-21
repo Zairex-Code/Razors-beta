@@ -698,13 +698,21 @@ function StepProducts({ products, onOpenNewProductModal }: { products: Array<{ i
                     type="number"
                     step="0.01"
                     min={1}
-                    value={p.quantity || ''}
+                    value={p.quantity === 0 ? '' : p.quantity}
                     onChange={(e) => {
                       const val = e.target.value
                       if (val === '') {
-                        updateProduct(p.productId, { quantity: 1 })
+                        updateProduct(p.productId, { quantity: 0 })
                       } else {
-                        updateProduct(p.productId, { quantity: parseInt(val) || 1 })
+                        const parsed = parseInt(val)
+                        if (!isNaN(parsed)) {
+                          updateProduct(p.productId, { quantity: parsed })
+                        }
+                      }
+                    }}
+                    onBlur={(e) => {
+                      if (p.quantity < 1) {
+                        updateProduct(p.productId, { quantity: 1 })
                       }
                     }}
                     className="bg-foreground/5 border border-border/50 rounded-lg py-1 px-2 text-sm font-bold w-20 text-center mx-auto focus:ring-1 focus:ring-primary/30"
@@ -723,7 +731,15 @@ function StepProducts({ products, onOpenNewProductModal }: { products: Array<{ i
                         if (val === '' || val === '0') {
                           updateProduct(p.productId, { unitPriceUsd: 0 })
                         } else {
-                          updateProduct(p.productId, { unitPriceUsd: parseFloat(val) || 0 })
+                          const parsed = parseFloat(val)
+                          if (!isNaN(parsed)) {
+                            updateProduct(p.productId, { unitPriceUsd: parsed })
+                          }
+                        }
+                      }}
+                      onBlur={(e) => {
+                        if (p.unitPriceUsd < 0) {
+                          updateProduct(p.productId, { unitPriceUsd: 0 })
                         }
                       }}
                       className="bg-transparent border-none p-0 text-sm font-bold focus:ring-0 w-24 text-right"

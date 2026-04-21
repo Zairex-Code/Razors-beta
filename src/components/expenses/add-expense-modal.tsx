@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { motion } from 'motion/react'
-import { X, Receipt, Upload, FileText } from 'lucide-react'
+import { X, Receipt, Upload, FileText, Repeat, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select'
 import { createExpense } from '@/app/actions/expense-actions'
 import { uploadFileToStorage } from '@/lib/storage'
+import { cn } from '@/lib/utils'
 
 interface AddExpenseModalProps {
   onClose: () => void
@@ -29,12 +30,20 @@ const CATEGORIES = [
   { value: 'OTHER', label: 'Otros' },
 ]
 
+const INTERVALS = [
+  { value: 'WEEKLY', label: 'Semanal' },
+  { value: 'MONTHLY', label: 'Mensual' },
+  { value: 'YEARLY', label: 'Anual' },
+]
+
 export function AddExpenseModal({ onClose, onSuccess }: AddExpenseModalProps) {
   const [category, setCategory] = useState('RENT')
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
   const [status, setStatus] = useState('PENDING')
   const [date, setDate] = useState('')
+  const [isRecurring, setIsRecurring] = useState(false)
+  const [recurrenceInterval, setRecurrenceInterval] = useState('MONTHLY')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState('')
@@ -66,6 +75,8 @@ export function AddExpenseModal({ onClose, onSuccess }: AddExpenseModalProps) {
         amountPen: parseFloat(amount),
         status,
         voucherUrl,
+        isRecurring,
+        recurrenceInterval: isRecurring ? recurrenceInterval : undefined,
       })
       onSuccess()
     } catch (err) {
@@ -186,6 +197,51 @@ export function AddExpenseModal({ onClose, onSuccess }: AddExpenseModalProps) {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="p-4 rounded-xl border border-primary/10 bg-primary/5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Repeat size={16} className="text-primary" />
+                  <span className="text-sm font-bold text-primary">Gasto Recurrente</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsRecurring(!isRecurring)}
+                  className={cn(
+                    "w-12 h-6 rounded-full transition-all relative",
+                    isRecurring ? "bg-primary" : "bg-gray-700"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "absolute top-1 w-4 h-4 rounded-full bg-white transition-all",
+                      isRecurring ? "right-1" : "left-1"
+                    )}
+                  />
+                </button>
+              </div>
+
+              {isRecurring && (
+                <div className="flex items-center gap-4 animate-in slide-in-from-top-2 duration-200">
+                  <Calendar size={14} className="text-primary/60" />
+                  <Select value={recurrenceInterval} onValueChange={(v) => setRecurrenceInterval(v || 'MONTHLY')}>
+                    <SelectTrigger className="flex-1 bg-black/50 border border-gray-800 rounded-xl py-2 px-3 text-white text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-950 border-gray-800 text-white shadow-xl">
+                      {INTERVALS.map((int) => (
+                        <SelectItem key={int.value} value={int.value}>
+                          {int.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <span className="text-xs text-gray-500">
+                    Se creará automáticamente el próximo pago
+                  </span>
+                </div>
+              )}
             </div>
 
             <label

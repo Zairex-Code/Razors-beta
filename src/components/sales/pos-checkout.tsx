@@ -631,12 +631,22 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
                       type="number"
                       min="1"
                       max={getStockForProduct(item.productId)}
-                      value={item.quantity}
+                      value={item.quantity === 0 ? '' : item.quantity}
                       onChange={(e) => {
-                        const val = parseInt(e.target.value)
+                        const val = e.target.value
+                        if (val === '') {
+                          updateQuantity(item.productId, 0)
+                        } else {
+                          const parsed = parseInt(val)
+                          if (!isNaN(parsed)) {
+                            updateQuantity(item.productId, parsed)
+                          }
+                        }
+                      }}
+                      onBlur={(e) => {
                         const stock = getStockForProduct(item.productId)
-                        if (!isNaN(val) && val >= 1) {
-                          handleQuantityChange(item.productId, val, stock)
+                        if (item.quantity < 1) {
+                          handleQuantityChange(item.productId, 1, stock)
                         }
                       }}
                       className="w-12 text-center bg-transparent border-none focus:ring-1 focus:ring-primary text-white outline-none text-sm font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
@@ -696,8 +706,23 @@ export function POSCheckout({ products, customers, userId, locationId, locationN
                 type="number"
                 min={0}
                 step={0.5}
-                value={deliveryCost || ''}
-                onChange={(e) => setDeliveryCost(roundCurrency(parseFloat(e.target.value) || 0))}
+                value={deliveryCost === 0 ? '' : deliveryCost}
+                onChange={(e) => {
+                  const val = e.target.value
+                  if (val === '' || val === '-') {
+                    setDeliveryCost(0)
+                  } else {
+                    const parsed = parseFloat(val)
+                    if (!isNaN(parsed)) {
+                      setDeliveryCost(roundCurrency(parsed))
+                    }
+                  }
+                }}
+                onBlur={(e) => {
+                  if (deliveryCost < 0) {
+                    setDeliveryCost(0)
+                  }
+                }}
                 placeholder="0.00"
                 className="w-full bg-gray-900/50 border border-gray-700/50 rounded-xl py-2.5 pl-10 pr-4 text-sm font-bold text-white placeholder-gray-600 focus:border-purple-500/50 focus:outline-none transition-all"
               />

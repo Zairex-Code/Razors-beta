@@ -146,13 +146,15 @@ model SaleItem {
 }
 
 model Expense {
-  id          String   @id @default(uuid())
-  date        DateTime @default(now())
-  category    String
-  description String
-  amountPen   Float
-  status      String
-  voucherUrl  String?
+  id                 String   @id @default(uuid())
+  date               DateTime @default(now())
+  category           String
+  description        String
+  amountPen          Float
+  status             String
+  voucherUrl         String?
+  isRecurring        Boolean  @default(false)
+  recurrenceInterval String?
 }
 
 model Document {

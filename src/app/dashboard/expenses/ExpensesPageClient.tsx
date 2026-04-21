@@ -14,6 +14,8 @@ interface Expense {
   amountPen: number
   status: string
   voucherUrl: string | null
+  isRecurring?: boolean
+  recurrenceInterval?: string | null
 }
 
 interface ExpensesPageClientProps {
