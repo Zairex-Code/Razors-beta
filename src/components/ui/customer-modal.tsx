@@ -22,8 +22,8 @@ interface CustomerModalProps {
   onClose: () => void
   mode: 'create' | 'edit'
   customer?: Customer
-  onCreated: (customer: Customer) => void
-  onUpdated: (customer: Customer) => void
+  onCreated: (customer: any) => void
+  onUpdated: (customer: any) => void
 }
 
 export function CustomerModal({ isOpen, onClose, mode, customer, onCreated, onUpdated }: CustomerModalProps) {
