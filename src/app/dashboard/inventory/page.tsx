@@ -4,12 +4,11 @@ import { getProductOptions } from '@/app/actions/product-actions'
 import { InventoryTable } from '@/components/inventory/inventory-table'
 import Link from 'next/link'
 import { ArrowLeftRight } from 'lucide-react'
-import { createClient } from '@/utils/supabase/client'
+import { getSessionUser } from '@/app/actions/auth-actions'
 
 export default async function InventoryPage() {
-  const supabase = createClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  const userRole = session?.user?.user_metadata?.role || 'EMPLOYEE'
+  const sessionUser = await getSessionUser()
+  const userRole = sessionUser?.role || 'EMPLOYEE'
 
   const [products, locations, productOptions] = await Promise.all([
     getProducts(),
