@@ -19,6 +19,13 @@ model User {
   sales     Sale[]
 }
 
+model SystemSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
 model Location {
   id        String       @id @default(uuid())
   name      String

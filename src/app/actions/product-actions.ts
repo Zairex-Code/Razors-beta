@@ -132,6 +132,10 @@ export async function createProduct(data: {
   pricePen: number
   imageUrl?: string
 }) {
+  const locations = await prisma.location.findMany({
+    where: { isActive: true }
+  })
+
   const product = await prisma.product.create({
     data: {
       sku: data.sku,
@@ -140,7 +144,13 @@ export async function createProduct(data: {
       model: data.model || null,
       category: data.category,
       pricePen: data.pricePen,
-      imageUrl: data.imageUrl || null
+      imageUrl: data.imageUrl || null,
+      inventory: {
+        create: locations.map(location => ({
+          locationId: location.id,
+          stock: 0
+        }))
+      }
     }
   })
 

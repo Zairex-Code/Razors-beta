@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { ImportStatus } from '@prisma/client'
 import { requireBossOrAdmin } from './auth-actions'
 import { roundCurrency } from '@/utils/math'
+import { getProfitMargin } from './setting-actions'
 
 export async function getImports(status?: ImportStatus) {
   return prisma.import.findMany({
@@ -25,6 +26,92 @@ export async function getImport(id: string) {
       items: { include: { product: true } },
       costs: true,
       documents: true
+    }
+  })
+}
+
+async function processDelivery(importId: string, previousStatus: ImportStatus) {
+  const importOrder = await prisma.import.findUnique({
+    where: { id: importId },
+    include: {
+      items: { include: { product: true } },
+      costs: true
+    }
+  })
+
+  if (!importOrder) return
+
+  if (previousStatus === 'DELIVERED') {
+    const warehouses = await prisma.location.findMany({
+      where: { type: 'WAREHOUSE', isActive: true }
+    })
+    for (const item of importOrder.items) {
+      for (const location of warehouses) {
+        await prisma.inventory.update({
+          where: {
+            productId_locationId: {
+              productId: item.productId,
+              locationId: location.id
+            }
+          },
+          data: { stock: { decrement: item.quantity } }
+        })
+      }
+    }
+    return
+  }
+
+  const profitMargin = await getProfitMargin()
+
+  const totalProductCostUsd = importOrder.items.reduce(
+    (sum, item) => sum + (item.unitPriceUsd * item.quantity),
+    0
+  )
+
+  const totalExtraCostsPen = importOrder.costs.reduce((sum, cost) => {
+    const amount = cost.currency === 'USD'
+      ? cost.amount * (cost.exchangeRate || importOrder.exchangeRate)
+      : cost.amount
+    return sum + amount
+  }, 0)
+
+  await prisma.$transaction(async (tx) => {
+    const warehouses = await tx.location.findMany({
+      where: { type: 'WAREHOUSE', isActive: true }
+    })
+
+    for (const item of importOrder.items) {
+      const itemCostUsd = item.unitPriceUsd * item.quantity
+      const prorrateo = totalProductCostUsd > 0
+        ? (itemCostUsd / totalProductCostUsd) * totalExtraCostsPen
+        : 0
+
+      const totalItemCostPen = (itemCostUsd * importOrder.exchangeRate) + prorrateo
+      const unitCostPen = totalItemCostPen / item.quantity
+      const profitMultiplier = 1 + (profitMargin / 100)
+      const newPricePen = roundCurrency(unitCostPen * profitMultiplier)
+
+      await tx.product.update({
+        where: { id: item.productId },
+        data: { pricePen: newPricePen }
+      })
+
+      for (const location of warehouses) {
+        await tx.inventory.upsert({
+          where: {
+            productId_locationId: {
+              productId: item.productId,
+              locationId: location.id
+            }
+          },
+          update: { stock: { increment: item.quantity } },
+          create: {
+            productId: item.productId,
+            locationId: location.id,
+            stock: item.quantity
+          }
+        })
+      }
     }
   })
 }
@@ -110,27 +197,7 @@ export async function createImport(data: {
   })
 
   if (data.delivered) {
-    const warehouses = await prisma.location.findMany({ where: { type: 'WAREHOUSE' } })
-    for (const item of importOrder.items) {
-      for (const location of warehouses) {
-        await prisma.inventory.upsert({
-          where: {
-            productId_locationId: {
-              productId: item.productId,
-              locationId: location.id
-            }
-          },
-          update: {
-            stock: { increment: item.quantity }
-          },
-          create: {
-            productId: item.productId,
-            locationId: location.id,
-            stock: item.quantity
-          }
-        })
-      }
-    }
+    await processDelivery(importOrder.id, 'PLANNING')
   }
 
   revalidatePath('/dashboard/imports')
@@ -152,56 +219,20 @@ export async function updateImportStatus(id: string, status: ImportStatus) {
 
   const previousStatus = currentImport.status
 
-  const importOrder = await prisma.import.update({
+  await prisma.import.update({
     where: { id },
-    data: { status },
-    include: { items: true }
+    data: { status }
   })
 
-  if (previousStatus === 'DELIVERED' && status !== 'DELIVERED') {
-    for (const item of importOrder.items) {
-      const warehouses = await prisma.location.findMany({ where: { type: 'WAREHOUSE' } })
-      for (const location of warehouses) {
-        await prisma.inventory.update({
-          where: {
-            productId_locationId: {
-              productId: item.productId,
-              locationId: location.id
-            }
-          },
-          data: {
-            stock: { decrement: item.quantity }
-          }
-        })
-      }
-    }
-  } else if (previousStatus !== 'DELIVERED' && status === 'DELIVERED') {
-    for (const item of importOrder.items) {
-      const warehouses = await prisma.location.findMany({ where: { type: 'WAREHOUSE' } })
-      for (const location of warehouses) {
-        await prisma.inventory.upsert({
-          where: {
-            productId_locationId: {
-              productId: item.productId,
-              locationId: location.id
-            }
-          },
-          update: {
-            stock: { increment: item.quantity }
-          },
-          create: {
-            productId: item.productId,
-            locationId: location.id,
-            stock: item.quantity
-          }
-        })
-      }
-    }
+  if (previousStatus !== status && status === 'DELIVERED') {
+    await processDelivery(id, previousStatus)
+  } else if (previousStatus === 'DELIVERED' && status !== 'DELIVERED') {
+    await processDelivery(id, previousStatus)
   }
 
   revalidatePath('/dashboard/imports')
   revalidatePath('/dashboard/inventory')
-  return importOrder
+  return { success: true }
 }
 
 export async function deleteImport(id: string) {

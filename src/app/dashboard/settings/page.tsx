@@ -1,8 +1,63 @@
 'use client'
 
-import { Settings, Database, Bell, Shield, Palette, Globe } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Settings, Database, Bell, Shield, Palette, Globe, Percent, Calculator, Save } from 'lucide-react'
+import Swal from 'sweetalert2'
+
+interface SystemSettings {
+  PROFIT_MARGIN: string
+}
 
 export default function SettingsPage() {
+  const [settings, setSettings] = useState<SystemSettings>({ PROFIT_MARGIN: '30' })
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+
+  useEffect(() => {
+    fetchSettings()
+  }, [])
+
+  const fetchSettings = async () => {
+    try {
+      const { getSettings } = await import('@/app/actions/setting-actions')
+      const data = await getSettings(['PROFIT_MARGIN'])
+      setSettings({
+        PROFIT_MARGIN: data.PROFIT_MARGIN || '30'
+      })
+    } catch (error) {
+      console.error('Error fetching settings:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleSaveMargin = async () => {
+    setIsSaving(true)
+    try {
+      const { updateSetting } = await import('@/app/actions/setting-actions')
+      await updateSetting('PROFIT_MARGIN', settings.PROFIT_MARGIN)
+      Swal.fire({
+        title: 'Guardado',
+        text: 'Margen de ganancia actualizado correctamente',
+        icon: 'success',
+        background: '#0a0a0a',
+        color: '#fff',
+        confirmButtonColor: '#00f7ff'
+      })
+    } catch (error: any) {
+      Swal.fire({
+        title: 'Error',
+        text: error.message || 'No se pudo guardar',
+        icon: 'error',
+        background: '#0a0a0a',
+        color: '#fff',
+        confirmButtonColor: '#ef4444'
+      })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   return (
     <div className="flex flex-col gap-8 w-full max-w-5xl mx-auto">
       <div className="flex items-center gap-3">
@@ -14,6 +69,65 @@ export default function SettingsPage() {
             System <span className="text-purple-500">Settings</span>
           </h1>
           <p className="text-gray-500 mt-1">Configure your Razors CRM instance</p>
+        </div>
+      </div>
+
+      <div className="glass-panel p-6 rounded-2xl border border-primary/20 bg-background/50 backdrop-blur-xl">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="p-3 rounded-xl bg-primary/10">
+            <Calculator className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h3 className="font-bold text-white">Reglas de Negocio</h3>
+            <p className="text-xs text-gray-500">Configuración de márgenes y cálculos automáticos</p>
+          </div>
+        </div>
+        <div className="space-y-6">
+          <div className="flex items-end gap-4">
+            <div className="flex-1 space-y-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-gray-400 ml-1 flex items-center gap-2">
+                <Percent size={12} className="text-primary" />
+                Margen de Ganancia
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  value={settings.PROFIT_MARGIN}
+                  onChange={(e) => setSettings({ ...settings, PROFIT_MARGIN: e.target.value })}
+                  min="0"
+                  max="100"
+                  step="1"
+                  className="w-32 bg-black/50 border border-gray-800 rounded-xl py-3 px-4 text-white font-bold text-lg text-center focus:border-primary focus:outline-none transition-all neon-glow"
+                />
+                <span className="text-gray-400 font-bold text-lg">%</span>
+                <span className="text-xs text-gray-500">
+                  (Usado para calcular precios de venta en importaciones)
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={handleSaveMargin}
+              disabled={isSaving}
+              className="px-6 py-3 rounded-xl bg-primary text-black font-bold text-sm tracking-tight hover:bg-primary/90 transition-all shadow-[0_0_20px_rgba(0,247,255,0.3)] disabled:opacity-50 flex items-center gap-2"
+            >
+              {isSaving ? (
+                <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+              ) : (
+                <Save size={16} />
+              )}
+              Guardar
+            </button>
+          </div>
+
+          <div className="p-4 rounded-xl bg-primary/5 border border-primary/10">
+            <h4 className="text-sm font-bold text-primary mb-2">¿Cómo funciona?</h4>
+            <ul className="text-xs text-gray-400 space-y-1">
+              <li>• Al completar una importación (estado DELIVERED), el sistema calcula automáticamente el precio de venta</li>
+              <li>• <strong>Fórmula:</strong> Precio = Costo Unitario Real × (1 + Margen / 100)</li>
+              <li>• Los costos incluyen: precio del producto en USD + gastos prorrateados (flete, aduanas, etc.)</li>
+              <li>• El margen default es 30% pero puedes ajustarlo según tu estrategia comercial</li>
+            </ul>
+          </div>
         </div>
       </div>
 

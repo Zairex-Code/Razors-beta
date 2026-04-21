@@ -40,6 +40,7 @@ async function cleanupTables() {
     prisma.customer.deleteMany(),
     prisma.user.deleteMany(),
     prisma.location.deleteMany(),
+    prisma.systemSetting.deleteMany(),
   ])
 
   console.log('   ✓ Todas las tablas limpiadas')
@@ -145,6 +146,18 @@ async function createLocations() {
 
   locations.forEach(loc => console.log(`   ✓ ${loc.name} (${loc.type})`))
   return locations
+}
+
+async function createSystemSettings() {
+  console.log('\n⚙️ Creando configuraciones del sistema...')
+
+  await prisma.systemSetting.upsert({
+    where: { key: 'PROFIT_MARGIN' },
+    update: { value: '30' },
+    create: { key: 'PROFIT_MARGIN', value: '30' }
+  })
+
+  console.log('   ✓ PROFIT_MARGIN: 30%')
 }
 
 async function createCustomers() {
@@ -617,6 +630,7 @@ async function main() {
   try {
     await cleanupTables()
 
+    await createSystemSettings()
     const { adminUser, employeeUser, bossUser } = await createUsers()
     const locations = await createLocations()
     const customers = await createCustomers()
