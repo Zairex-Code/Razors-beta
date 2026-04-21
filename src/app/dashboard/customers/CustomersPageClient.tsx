@@ -78,15 +78,7 @@ export default function CustomersPageClient({ initialCustomers }: CustomersPageC
   const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  const handleCustomerCreated = (customer: {
-    id: string
-    docType: string
-    docNumber: string
-    name: string
-    email: string | null
-    phone: string | null
-    address: string | null
-  }) => {
+  const handleCustomerCreated = (customer: any) => {
     const extendedCustomer: Customer = {
       ...customer,
       totalPurchases: 0,
@@ -108,15 +100,7 @@ export default function CustomersPageClient({ initialCustomers }: CustomersPageC
     })
   }
 
-  const handleCustomerUpdated = (updated: {
-    id: string
-    docType: string
-    docNumber: string
-    name: string
-    email: string | null
-    phone: string | null
-    address: string | null
-  }) => {
+  const handleCustomerUpdated = (updated: any) => {
     setEditModalOpen(false)
     setCustomerToEdit(null)
     setCustomers(prev => prev.map(c => c.id === updated.id ? { ...c, ...updated, totalPurchases: c.totalPurchases, sales: c.sales } : c))

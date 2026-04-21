@@ -4,15 +4,16 @@ Sistema CRM/ERP para gestión de importaciones, inventario multialmacén y venta
 
 ## Stack Tecnológico
 
-- **Framework**: Next.js 16 (App Router)
+- **Framework**: Next.js 16 (App Router + Turbopack)
 - **Frontend**: React 19, TypeScript, Tailwind CSS v4
-- **UI Components**: Shadcn UI
+- **UI Components**: Shadcn UI + Base UI
 - **Estado Global**: Zustand
 - **Gráficos**: Recharts
 - **Base de Datos**: PostgreSQL (Supabase)
 - **ORM**: Prisma 5
-- **Auth**: Supabase Auth
+- **Auth**: Supabase Auth + Proxy de cookies
 - **Storage**: Supabase Storage
+- **Impresión**: react-to-print
 
 ## Requisitos Previos
 
@@ -42,6 +43,7 @@ En **Project Settings > API**, copia:
 
 - **Project URL**: `https://[tu-proyecto-id].supabase.co`
 - **anon/public key**: la clave que aparece
+- **service_role key**: clave de servicio (para operaciones administrativas)
 
 ### 3. Configurar Variables de Entorno
 
@@ -49,28 +51,26 @@ Edita el archivo `.env` en la raíz del proyecto:
 
 ```env
 # Database connection for Prisma (Supabase PostgreSQL)
-DATABASE_URL="postgresql://postgres:[TU_PASSWORD]@[TU_HOST]:5432/postgres?pgbouncer=true"
-DIRECT_URL="postgresql://postgres:[TU_PASSWORD]@[TU_HOST]:5432/postgres"
+DATABASE_URL="postgresql://postgres.[TU_HOST]:5432/postgres?pgbouncer=true&user=postgres&password=[TU_PASSWORD]"
+DIRECT_URL="postgresql://postgres.[TU_HOST]:5432/postgres?user=postgres&password=[TU_PASSWORD]"
 
 # Supabase Auth & Storage keys
 NEXT_PUBLIC_SUPABASE_URL="https://[TU_PROYECTO_ID].supabase.co"
 NEXT_PUBLIC_SUPABASE_ANON_KEY="[TU_ANON_KEY]"
+SUPABASE_SERVICE_ROLE_KEY="[TU_SERVICE_ROLE_KEY]"
 ```
 
-### 4. Crear Tablas en Supabase
-
-Una vez configuradas las variables de entorno, ejecuta:
+### 4. Inicializar Base de Datos
 
 ```bash
+# Empujar el esquema a la base de datos
 npm run db:push
-```
 
-Esto creará todas las tablas del esquema en tu base de datos de Supabase.
-
-### 5. Generar Prisma Client
-
-```bash
+# Generar el cliente Prisma
 npm run db:generate
+
+# Poblar con datos iniciales (usuarios, ubicaciones, etc.)
+npm run db:seed
 ```
 
 ---
@@ -93,8 +93,11 @@ npm run typecheck
 # Push esquema a base de datos
 npm run db:push
 
-# Generar Prisma Client
+# Generar Prisma Client (se ejecuta automáticamente en postinstall)
 npm run db:generate
+
+# Poblar base de datos inicial
+npm run db:seed
 
 # Resetear base de datos (cuidado: borra todo)
 npm run db:reset
@@ -109,27 +112,36 @@ src/
 ├── app/
 │   ├── (auth)/login/          # Página de login
 │   ├── dashboard/             # Panel principal
-│   │   ├── inventory/         # Gestión de inventario
-│   │   ├── imports/           # Importaciones (wizard 4 pasos)
-│   │   ├── customers/         # Clientes
+│   │   ├── inventory/        # Gestión de inventario
+│   │   │   └── transfers/    # Transferencias entre sedes
+│   │   ├── imports/          # Importaciones (wizard 4 pasos)
+│   │   ├── customers/        # Clientes con facturas
 │   │   ├── sales/             # Ventas y POS
-│   │   ├── expenses/         # Gastos operativos
-│   │   └── reports/          # Reportes BI
+│   │   ├── locations/         # Gestión de sedes (ADMIN/BOSS)
+│   │   ├── expenses/          # Gastos operativos
+│   │   ├── reports/           # Reportes BI
+│   │   ├── users/             # Gestión de usuarios (ADMIN)
+│   │   └── settings/          # Configuración del sistema
 │   ├── actions/               # Server Actions
+│   │   ├── auth-actions.ts    # Auth y sesiones
+│   │   ├── location-actions.ts # CRUD sedes y transferencias
+│   │   ├── sale-actions.ts    # Ventas y anulaciones
+│   │   └── ...
 │   ├── globals.css            # Estilos dark glassmorphism
 │   └── layout.tsx             # Layout principal
 ├── components/
-│   ├── layout/                # Sidebar, header
-│   └── ui/                    # Componentes Shadcn
+│   ├── layout/                # Sidebar, MobileNav
+│   ├── sales/                 # InvoiceTemplate, TicketTemplate, POS
+│   ├── inventory/             # InventoryTable
+│   ├── customers/             # CustomersTable
+│   └── ui/                    # Componentes Shadcn/Base UI
 ├── stores/                    # Zustand stores
 │   ├── pos-store.ts           # Carrito POS
-│   └── import-wizard-store.ts # Wizard importaciones
+│   └── import-wizard-store.ts  # Wizard importaciones
 ├── lib/
 │   ├── prisma.ts              # Cliente Prisma
 │   └── utils.ts               # Utilidades
-└── utils/supabase/            # Clientes Supabase
-    ├── server.ts              # Server component client
-    └── client.ts             # Browser client
+└── proxy.ts                   # Proxy de auth (Next.js 16)
 ```
 
 ---
@@ -140,26 +152,30 @@ src/
 
 | Rol | Descripción | Acceso |
 |-----|-------------|--------|
-| `ADMIN` | Desarrollador | Total + settings técnicos |
-| `BOSS` | Dueña del negocio | Dashboard completo, finanzas, reportes |
+| `ADMIN` | Desarrollador | Total + settings + usuarios |
+| `BOSS` | Dueña del negocio | Dashboard completo, finanzas, reportes, sedes |
 | `EMPLOYEE` | Vendedor | Dashboard, inventario, clientes, ventas |
 
-### Inventario Multialmacén
+### Arquitectura Multialmacén
 
-- Cada producto tiene stock dividido entre "Almacén Central" y "Tienda Principal"
-- Transferencias entre almacenes disponibles
+- **Locations**: Cada sede tiene `type` (WAREHOUSE/STORE), dirección, teléfono, email
+- **Inventory**: Stock por producto y ubicación (ProductStock)
+- **Transferencias**: Movimientos de inventario entre sedes
+- **Cierre de sedes**: Transferencia obligatoria de stock antes de desactivar
 
-### Importaciones
+### Flujo de Importaciones
 
-- Wizard de 4 pasos: Info → Productos → Documentos → Costos Extra
-- El stock **solo se suma** cuando la importación cambia a estado "Entregado"
-- Eliminación en cascada de productos, costos y documentos
+1. Wizard de 4 pasos: Info → Productos → Documentos → Costos Extra
+2. Estados: PENDING → IN_TRANSIT → DISPATCHED → DELIVERED
+3. El stock **solo se suma** al almacén cuando cambia a "Entregado"
 
-### Ventas
+### Ventas y Facturas
 
 - Las ventas **no se borran**, se **anulan** (status: VOID)
 - Al anular, el stock se devuelve automáticamente
 - Cálculo automático de IGV (18%)
+- Facturas con datos dinámicos de la sede (dirección, teléfono, email)
+- Descarga de facturas desde historial de clientes
 
 ---
 
@@ -167,64 +183,92 @@ src/
 
 ### Modelos Principales
 
-- **User**: Usuarios del sistema con roles
-- **Product**: Productos con SKU único
-- **Inventory**: Stock por producto y ubicación
-- **Location**: Almacén Central, Tienda Principal
-- **Customer**: Clientes (RUC/DNI)
-- **Import**: Órdenes de importación
-- **ImportItem**: Productos en una importación
-- **ImportCost**: Costos extra (naviera, aduanas, etc.)
-- **Sale**: Ventas con estado
-- **SaleItem**: Productos vendidos
-- **Expense**: Gastos operativos
-- **Document**: PDFs/imágenes (solo URLs)
+| Modelo | Descripción |
+|--------|-------------|
+| **User** | Usuarios del sistema con roles |
+| **Location** | Sedes (Almacenes y Tiendas) con contacto |
+| **Product** | Productos con SKU único |
+| **Inventory** | Stock por producto y ubicación |
+| **Customer** | Clientes B2B (RUC/DNI) |
+| **Sale** | Ventas con estado y ubicación |
+| **SaleItem** | Detalle de productos vendidos |
+| **Import** | Órdenes de importación |
+| **ImportItem** | Productos en importación |
+| **ImportCost** | Costos extra (naviera, aduanas) |
+| **Expense** | Gastos operativos |
 
-### Relaciones Clave
+### Location (Sedes)
 
-- `Inventory`: [Product, Location] - stock multialmacén
-- `Sale`: [User, Customer, Location] - quién vendió, a quién, dónde
-- `Import`: [ImportItem, ImportCost, Document] - con cascade delete
-
----
-
-## Configuración de Auth (Supabase)
-
-### 1. Habilitar Email Auth en Supabase
-
-En tu proyecto Supabase:
-1. Ve a **Authentication > Providers**
-2. Asegúrate de que **Email** esté habilitado
-3. Desactiva "Confirm email" si no quieres verificación de email
-
-### 2. Crear Usuarios Iniciales
-
-Puedes crear usuarios desde:
-- **Supabase Dashboard > Authentication > Users**
-- O mediante seed script
-
-### 3. Configurar Metadata de Usuario
-
-Cada usuario necesita `role` en su metadata:
-```json
-{
-  "role": "BOSS"
+```prisma
+model Location {
+  id        String       @id @default(uuid())
+  name      String
+  type      LocationType @default(STORE)  // WAREHOUSE | STORE
+  address   String?      // Dirección de la sede
+  phone     String?      // Teléfono de contacto
+  email     String?      // Email de contacto
+  isActive  Boolean      @default(true)
+  inventory Inventory[]
+  sales     Sale[]
 }
 ```
 
-Roles válidos: `ADMIN`, `BOSS`, `EMPLOYEE`
+---
+
+## Módulo de Sedes
+
+### Gestión de Sedes y Locales
+
+- Crear, editar y cerrar sedes (ADMIN/BOSS)
+- Cada sede puede ser **Almacén** (WAREHOUSE) o **Tienda** (STORE)
+- Campos de contacto: dirección, teléfono, email
+- **Cierre seguro**: Si la sede tiene stock, se debe seleccionar destino antes de cerrar
+
+### Flujo de Cierre de Sede
+
+```
+1. Usuario intenta cerrar sede con stock
+2. Modal inteligente pregunta: "¿A dónde transferimos el inventario?"
+3. Select muestra otras sedes activas
+4. Al confirmar: transferencia atómica de todo el stock
+5. Sede marcada como inactiva
+```
+
+### Facturas Dinámicas por Sede
+
+Cada factura/ticket ahora muestra los datos de contacto de la sede donde se realizó la venta:
+- Nombre de la sede
+- Dirección
+- Teléfono
+- Email
 
 ---
 
 ## Deploy en Vercel
 
-1. Conecta tu repositorio GitHub a Vercel
-2. Agrega las variables de entorno en Vercel:
-   - `DATABASE_URL`
-   - `DIRECT_URL`
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-3. Deploy automático al hacer push a main
+### 1. Conectar Repositorio
+
+Conecta tu repositorio GitHub a Vercel desde el dashboard.
+
+### 2. Variables de Entorno en Vercel
+
+Agrega todas las variables del `.env`:
+- `DATABASE_URL`
+- `DIRECT_URL`
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+### 3. Build Script
+
+El `postinstall` se ejecuta automáticamente:
+```json
+"postinstall": "prisma generate"
+```
+
+### 4. Deploy
+
+El deploy es automático al hacer push a la rama principal.
 
 ---
 
@@ -232,15 +276,15 @@ Roles válidos: `ADMIN`, `BOSS`, `EMPLOYEE`
 
 ### 1. Seed de Datos Iniciales
 
-Crea un script `prisma/seed.ts` para cargar:
-- Productos con SKU, nombre, categoría, precio
-- Stock actual por ubicación
-- Clientes frecuentes
+El seed crea:
+- 3 usuarios (admin, boss, employee)
+- 2 sedes por defecto (Almacén Central, Tienda Principal)
+- Datos de prueba
 
 ### 2. Corte de Caja
 
 1. Hacer inventario físico real el día del corte
-2. Cargar datos exactos en el seed
+2. Ajustar seed con datos exactos
 3. Desplegar a producción
 4. A partir de ese momento, **todo** se registra en Razors
 
@@ -249,6 +293,7 @@ Crea un script `prisma/seed.ts` para cargar:
 - Ambiente sandbox para practicar
 - Simular importaciones falsas completas
 - Practicar anulación de ventas
+- Probar cierre y transferencias de sedes
 
 ---
 
@@ -257,18 +302,37 @@ Crea un script `prisma/seed.ts` para cargar:
 ### Error: "Connection refused" en Prisma
 
 1. Verifica que las credenciales en `.env` estén correctas
-2. Asegúrate de que `DIRECT_URL` tenga el puerto `5432`
-3. Revisa que la contraseña sea la de la base de datos (no la de Supabase)
+2. Asegúrate de que `DATABASE_URL` tenga el formato correcto
+3. Revisa que la contraseña no contenga caracteres especiales sin encoding
 
 ### Error: "Auth failed" en Supabase
 
 1. Verifica `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-2. Las credenciales deben ser del proyecto correcto
+2. Confirma que `SUPABASE_SERVICE_ROLE_KEY` está configurada
+3. Revisa que las credenciales sean del proyecto correcto
 
 ### Build falla en Vercel
 
 1. Verifica todas las variables de entorno en Vercel Dashboard
-2. Asegúrate de haber ejecutado `npm run db:generate` antes del build
+2. Asegúrate de que `postinstall` esté configurado en package.json
+3. Ejecuta `npm run typecheck` localmente para detectar errores
+
+### Prisma Client desactualizado
+
+Si agregas campos al schema, regenera:
+```bash
+npx prisma generate
+```
+
+---
+
+## Credenciales de Prueba (Seed)
+
+| Rol | Email | Contraseña |
+|-----|-------|------------|
+| ADMIN | admin@razors.com | password123 |
+| BOSS | boss@razors.com | password123 |
+| EMPLOYEE | vendedor@razors.com | password123 |
 
 ---
 
